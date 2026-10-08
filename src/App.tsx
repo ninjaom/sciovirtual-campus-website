@@ -8,6 +8,10 @@ import { SignIn } from './pages/auth/SignIn'
 import { SignUp } from './pages/auth/SignUp'
 import { ForgotPassword } from './pages/auth/ForgotPassword'
 import { ResetPassword } from './pages/auth/ResetPassword'
+import { Styleguide } from './pages/Styleguide'
+
+// The styleguide is for checking components on the test site only.
+const showStyleguide = window.location.hostname !== 'campus.sciovirtual.org'
 
 export default function App() {
   return (
@@ -18,6 +22,8 @@ export default function App() {
       <Route path="/forgot-password" element={<SignedOutOnly><ForgotPassword /></SignedOutOnly>} />
       {/* Reached from the reset email; the link signs the person in for this one step. */}
       <Route path="/reset-password" element={<ResetPassword />} />
+
+      {showStyleguide && <Route path="/styleguide" element={<Styleguide />} />}
 
       {/* Signed in */}
       <Route element={<RequireAuth><AppShell /></RequireAuth>}>
