@@ -13,8 +13,7 @@ export interface NavGroup {
 }
 export type NavEntry = NavLink | NavGroup
 
-// TODO(Om): confirm the Practice site address before launch.
-export const PRACTICE_URL = '#'
+export const PRACTICE_URL = 'https://practice.sciovirtual.org'
 
 const otherResources: NavGroup = {
   kind: 'group',

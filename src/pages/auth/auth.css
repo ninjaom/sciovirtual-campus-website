@@ -112,38 +112,6 @@
 }
 
 /* Sign-up sections */
-.su__steps {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: center;
-}
-.su__dot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-size: 14px;
-  font-weight: 600;
-  background: var(--lavender);
-  color: var(--blue-ink);
-}
-.su__dot.is-on {
-  background: var(--blue-strong);
-  color: #fff;
-}
-.su__line {
-  flex: none;
-  width: 72px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--lavender);
-}
-.su__line.is-on {
-  background: var(--blue-strong);
-}
 .su__section {
   display: flex;
   flex-direction: column;

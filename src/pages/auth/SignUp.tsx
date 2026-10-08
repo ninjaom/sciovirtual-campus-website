@@ -100,11 +100,6 @@ export function SignUp() {
   return (
     <AuthLayout wide>
       <form onSubmit={submit} noValidate style={{ display: 'contents' }}>
-        <div className="su__steps" aria-hidden="true">
-          <span className="su__dot is-on">1</span>
-          <span className="su__line is-on" />
-          <span className="su__dot">2</span>
-        </div>
         <AuthIntro title="Sign Up!">
           Please input the relevant information accurately - the password is original to this site only, and the ID is the one given through email.
         </AuthIntro>
