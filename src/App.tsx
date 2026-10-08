@@ -8,6 +8,7 @@ import { SignIn } from './pages/auth/SignIn'
 import { SignUp } from './pages/auth/SignUp'
 import { ForgotPassword } from './pages/auth/ForgotPassword'
 import { ResetPassword } from './pages/auth/ResetPassword'
+import { SignOut } from './pages/auth/SignOut'
 import { Styleguide } from './pages/Styleguide'
 
 // The styleguide is for checking components on the test site only.
@@ -22,6 +23,7 @@ export default function App() {
       <Route path="/forgot-password" element={<SignedOutOnly><ForgotPassword /></SignedOutOnly>} />
       {/* Reached from the reset email; the link signs the person in for this one step. */}
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/sign-out" element={<SignOut />} />
 
       {showStyleguide && <Route path="/styleguide" element={<Styleguide />} />}
 
