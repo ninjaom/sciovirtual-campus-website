@@ -30,6 +30,10 @@ If the code, the doc and the mockups disagree, stop and ask Om. Do not pick one.
 - Every security rule gets an automated test (e.g. a student account cannot read another student's grades or any Zoom host credentials).
 - Most users are 10–14. Collect nothing beyond what the planning doc lists.
 
+## Checking screens against the mockups
+
+- Every time a screen from the mockups is built, compare it side by side with its mockup board, on a computer and a phone width. Fix every difference, or ask Om about it, before calling the screen done.
+
 ## Stack
 
 - React + Vite + TypeScript, built as a static app on Cloudflare Pages.
