@@ -1,0 +1,274 @@
+.shell {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.hdr {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--blue);
+}
+.hdr__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 5%;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+}
+.brand:hover {
+  color: #fff;
+}
+
+/* Desktop menubar */
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.topnav__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 8px 14px;
+  border: none;
+  border-radius: var(--r-pill);
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.topnav__link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+.topnav__link.is-active,
+.dd.is-active > .topnav__link {
+  color: var(--blue);
+  background: #fff;
+  padding: 8px 18px;
+}
+
+/* Dropdowns: open on hover or tap (focus-within), slide in, chevron flips. */
+.dd {
+  position: relative;
+}
+.dd__menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 200px;
+  background: #fff;
+  border-radius: var(--r-card);
+  padding: 8px;
+  box-shadow: var(--shadow-menu);
+  transform-origin: top;
+}
+.dd:hover .dd__menu,
+.dd:focus-within .dd__menu {
+  display: flex;
+  animation: ddIn var(--dur-fast) ease-out;
+}
+.dd .chev {
+  transition: transform var(--dur-fast) ease-out;
+}
+.dd:hover .chev,
+.dd:focus-within .chev {
+  transform: rotate(180deg);
+}
+.dd__item {
+  display: block;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  border-radius: var(--r-row);
+  padding: 10px 14px;
+  white-space: nowrap;
+}
+.dd__item:hover,
+.dd__item.is-active {
+  background: var(--lavender-soft);
+  color: var(--text);
+}
+@keyframes ddIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Account button */
+.acct {
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: var(--r-pill);
+  padding: 6px 14px 6px 6px;
+  min-height: 44px;
+  text-decoration: none;
+}
+.acct:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar--student {
+  background: var(--lavender);
+  color: var(--blue-ink);
+}
+.avatar--instructor {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+.avatar--admin {
+  background: #fff;
+  color: var(--blue);
+}
+
+/* Phone menu */
+.menubtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: var(--r-row);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+.menubtn.is-open {
+  background: rgba(255, 255, 255, 0.22);
+}
+.pmenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 0 0 var(--r-card) var(--r-card);
+  padding: 8px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 16px 32px rgba(32, 31, 86, 0.22);
+  animation: pmIn var(--dur) var(--ease-out);
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+.pmenu__link {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  border-radius: var(--r-row);
+  padding: 12px 16px;
+}
+.pmenu__link--sub {
+  font-size: 14px;
+  padding-left: 28px;
+  color: var(--blue-ink);
+}
+.pmenu__link.is-active {
+  background: var(--blue);
+  color: #fff;
+}
+.pmenu__label {
+  display: block;
+  padding: 14px 16px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.pmenu__acct {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
+  border-radius: var(--r-row);
+  padding: 10px 14px;
+}
+@keyframes pmIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .hdr__bar {
+    padding: 10px 16px;
+  }
+  .brand {
+    font-size: 17px;
+  }
+  .brand img {
+    width: 32px;
+    height: 32px;
+  }
+  .topnav {
+    display: none;
+  }
+  .menubtn {
+    display: flex;
+  }
+}

@@ -1,0 +1,77 @@
+/* Design tokens: see "Design rules" in the planning doc. */
+:root {
+  /* Blues */
+  --blue: #5166d6;
+  --blue-strong: #4054dc;
+  --blue-hero: #3b53d9;
+  --blue-ink: #3b4cc0;
+  --blue-deep: #2e3ea8;
+  --periwinkle: #7b8ce7;
+  --navy: #201f56;
+  --lavender: #d7ddff;
+  --lavender-soft: #eef0ff;
+
+  /* Teal */
+  --teal: #44cab2;
+  --teal-soft: #ddf5f0;
+  --teal-ink: #17695a;
+
+  /* Neutrals */
+  --bg: #f4f5fc;
+  --surface: #ffffff;
+  --text: #202525;
+  --text-body: #333333;
+  --text-muted: #5a5f6b;
+  --border: #e7e7e7;
+  --border-soft: #eeeeee;
+  --border-input: #c4c4c4;
+  --skeleton: #e9ecf8;
+
+  /* Status */
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --amber-soft: #fff6db;
+  --amber-ink: #8a5a00;
+  --grey-soft: #f1f2f5;
+
+  /* Medals */
+  --gold: #e0a82e;
+  --silver: #9aa1ad;
+  --bronze: #c27c48;
+
+  /* Corners */
+  --r-tile: 8px;
+  --r-row: 12px;
+  --r-card: 20px;
+  --r-pill: 999px;
+
+  /* Spacing */
+  --card-pad-y: 24px;
+  --card-pad-x: 28px;
+  --gutter: 24px;
+
+  /* Type */
+  --font: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Elevation */
+  --shadow-menu: 0 10px 30px rgba(32, 31, 86, 0.18);
+  --shadow-dialog: 0 24px 60px rgba(32, 31, 86, 0.3);
+  --scrim: rgba(32, 31, 86, 0.45);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 160ms;
+  --dur: 220ms;
+
+  /* Layout */
+  --header-h: 66px;
+  --phone-bp: 960px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --card-pad-y: 20px;
+    --card-pad-x: 20px;
+    --gutter: 16px;
+  }
+}
