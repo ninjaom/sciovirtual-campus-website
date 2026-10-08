@@ -54,7 +54,8 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000b2', 'ib@test'),
   ('00000000-0000-0000-0000-0000000000c1', 's1@test'),
   ('00000000-0000-0000-0000-0000000000c2', 's2@test'),
-  ('00000000-0000-0000-0000-0000000000c3', 's3@test');
+  ('00000000-0000-0000-0000-0000000000c3', 's3@test'),
+  ('00000000-0000-0000-0000-0000000000f1', 'stranger@test'); -- signed in but no Campus account
 
 insert into public.events (id, name, year, is_current) values ('10000000-0000-0000-0000-000000000001', 'ScioCamp 2027', 2027, true);
 insert into public.settings (event_id, leaderboard_state, leaderboard_top_n, course_top_n, takeover_bonus)
@@ -70,7 +71,6 @@ insert into public.people (id, auth_user_id, person_code, role, first_name, last
   -- not signed up yet
   ('20000000-0000-0000-0000-0000000000c4', null, '27DD0004', 'student', 'First', 'D', null, null, null);
 
-insert into public.setup_codes (person_id, code) values ('20000000-0000-0000-0000-0000000000c4', 'K7Q2-9MXD');
 
 insert into public.courses (id, event_id, short_code, name) values
   ('30000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-000000000001', 'COA', 'Course A'),
@@ -230,11 +230,21 @@ update public.settings set leaderboard_state = 'frozen';
 select tests.ok((select leaderboard_state from public.settings) = 'live', 'instructor cannot freeze the leaderboard');
 
 -- ---------------------------------------------------------------------
+-- A sign-in with no Campus account sees nothing
+-- ---------------------------------------------------------------------
+select tests.as_user('00000000-0000-0000-0000-0000000000f1');
+select tests.ok((select count(*) from public.settings) = 0 and (select count(*) from public.teams) = 0 and (select count(*) from public.events) = 0, 'a sign-in without a Campus account reads nothing');
+select tests.ok(public.get_leaderboard() is null, 'a sign-in without a Campus account gets no leaderboard');
+select tests.refused($$select public.admin_new_setup_code('20000000-0000-0000-0000-0000000000c4')$$, 'non-admins cannot issue setup codes');
+
+-- ---------------------------------------------------------------------
 -- Admin: freezing and hiding
 -- ---------------------------------------------------------------------
 select tests.as_user('00000000-0000-0000-0000-0000000000a1');
 select tests.ok((select count(*) from public.people) = 7, 'admin reads everyone');
-select tests.ok((select count(*) from public.setup_codes) = 1, 'admin reads setup codes');
+select tests.ok((select count(*) from public.setup_codes) = 1, 'new people get a setup code automatically');
+select tests.ok((select code from public.setup_codes) ~ '^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$', 'setup codes use the XXXX-XXXX format');
+select tests.ok(public.admin_new_setup_code('20000000-0000-0000-0000-0000000000c4') <> '' and (select count(*) from public.setup_codes where used_at is null) = 1, 'admin can issue a new code, replacing the old one');
 select tests.ok((select count(*) from public.course_zoom_hosts) = 2, 'admin reads all Zoom hosts');
 update public.settings set leaderboard_state = 'frozen';
 insert into public.points (challenge_id, person_id, points) values ('70000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-0000000000c2', 50);
