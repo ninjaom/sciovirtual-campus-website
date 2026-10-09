@@ -348,6 +348,31 @@ select tests.ok((select count(*) from public.announcement_comments where id = '9
 select tests.as_postgres();
 
 -- ---------------------------------------------------------------------
+-- Phase 5: leaderboard
+-- ---------------------------------------------------------------------
+select tests.as_user('00000000-0000-0000-0000-0000000000a1');
+select tests.refused($$insert into public.points (challenge_id, person_id, points) values ('70000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-0000000000c1', -5)$$, 'points cannot be negative');
+select tests.refused($$insert into public.points (challenge_id, person_id, points) values ('70000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-0000000000c1', 51)$$, 'individual points cannot go above the event maximum');
+select tests.refused($$insert into public.points (challenge_id, team_id, points) values ('70000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000001', 501)$$, 'team points cannot go above the event maximum');
+update public.teams set takeover_override = 1000 where id = '40000000-0000-0000-0000-000000000001';
+select tests.ok((select (t ->> 'takeovers')::numeric from jsonb_array_elements(public.get_leaderboard() -> 'teams') t where t ->> 'name' = 'Team A') = 1000, 'an admin can override a team''s course takeovers');
+select tests.ok((select (t ->> 'takeovers_auto')::numeric from jsonb_array_elements(public.get_leaderboard() -> 'teams') t where t ->> 'name' = 'Team A') = 500, 'admins still see the calculated takeovers');
+update public.settings set takeovers_shown = false;
+select tests.ok((select (t ->> 'total')::numeric from jsonb_array_elements(public.get_leaderboard() -> 'teams') t where t ->> 'name' = 'Team A') = 0, 'hidden course takeovers leave team totals');
+update public.settings set takeovers_shown = true, course_top_n = 1;
+select tests.as_user('00000000-0000-0000-0000-0000000000c1');
+select tests.ok((select bool_and(jsonb_array_length(c -> 'rows') <= 1) from jsonb_array_elements(public.get_leaderboard() -> 'courses') c), 'course leaderboards show only the top N');
+select tests.ok(public.get_leaderboard()::text not like '%takeovers_auto%', 'students do not see the calculated-takeover detail');
+select tests.ok(public.get_leaderboard()::text not like '%First%' and public.get_leaderboard()::text not like '%parent%', 'leaderboards still carry no real names or emails');
+select tests.as_postgres();
+update public.teams set takeover_override = null;
+select tests.as_user('00000000-0000-0000-0000-0000000000c1');
+update public.teams set takeover_override = 5;
+select tests.as_postgres();
+select tests.ok((select count(*) from public.teams where takeover_override is not null) = 0, 'students cannot override takeovers');
+update public.settings set course_top_n = 10;
+
+-- ---------------------------------------------------------------------
 -- Phase 2 follow-ups
 -- ---------------------------------------------------------------------
 -- Leaderboards leave out students who haven't signed up (S4), but their

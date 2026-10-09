@@ -15,6 +15,8 @@ import { Accounts } from './pages/admin/Accounts'
 import { Courses } from './pages/admin/Courses'
 import { GradeItems } from './pages/admin/GradeItems'
 import { HomeContent } from './pages/admin/HomeContent'
+import { LeaderboardPoints } from './pages/admin/LeaderboardPoints'
+import { Leaderboard } from './pages/shared/Leaderboard'
 import { useAuth } from './lib/auth'
 import { CourseLayout } from './pages/instructor/CourseLayout'
 import { InstructorHome } from './pages/instructor/InstructorHome'
@@ -32,7 +34,7 @@ import { MyCourses, MyCoursesIndex } from './pages/student/MyCourses'
 // The styleguide is for checking components on the test site only.
 const showStyleguide = window.location.hostname !== 'campus.sciovirtual.org'
 
-const BUILT = ['/admin', '/admin/accounts', '/admin/courses', '/admin/grade-items', '/admin/home-content']
+const BUILT = ['/admin', '/admin/accounts', '/admin/courses', '/admin/grade-items', '/admin/home-content', '/admin/leaderboard']
 
 /** Home: Instructor Home for instructors; students and admins share Student Home (admins get their own cards). */
 function HomeRoute() {
@@ -70,7 +72,7 @@ export default function App() {
           <Route path="feedback" element={<Feedback />} />
           <Route path="announcements" element={<Announcements />} />
         </Route>
-        <Route path="/leaderboard" element={<Placeholder title="Leaderboard" />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/merchandise" element={<MerchRoute />} />
         <Route path="/account" element={<Account />} />
         <Route path="/learn/*" element={<Placeholder title="Learn" />} />
@@ -81,6 +83,7 @@ export default function App() {
           <Route path="courses" element={<Courses />} />
           <Route path="grade-items" element={<GradeItems />} />
           <Route path="home-content" element={<HomeContent />} />
+          <Route path="leaderboard" element={<LeaderboardPoints />} />
           {ADMIN_SECTIONS.filter((s) => !BUILT.includes(s.to)).map((s) => (
             <Route key={s.to} path={s.to.replace('/admin/', '')} element={<AdminPlaceholder title={s.label} />} />
           ))}

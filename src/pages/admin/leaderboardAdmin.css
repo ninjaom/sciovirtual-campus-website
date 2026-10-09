@@ -1,0 +1,136 @@
+/* Admin › Leaderboard & Points (AdminLeaderboard mockup board) */
+.lbstatus {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+.lbstatus__main {
+  flex: 1 1 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lbstatus__note {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.lbstatus__side {
+  flex: 0 1 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lbcut {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.lbcut .field__label {
+  white-space: nowrap;
+}
+.lbcut__of {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding-bottom: 12px;
+}
+.ptbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+.ptselect {
+  min-width: 220px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ptmax {
+  font-weight: 400;
+  font-size: 12px;
+}
+.ptpill {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue-ink);
+  background: var(--lavender);
+  border-radius: var(--r-tile);
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.pttable td:first-child {
+  white-space: nowrap;
+}
+.pttable td {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.pttable td.ptcellwrap {
+  padding: 4px 8px;
+}
+.ptcell {
+  width: 100%;
+  font-size: 14px;
+  text-align: center;
+  padding: 9px 6px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-row);
+  color: var(--text);
+  background: var(--surface);
+  font-variant-numeric: tabular-nums;
+}
+.ptcell::placeholder {
+  color: #a0a5b1;
+}
+.ptcell:focus {
+  outline: 2px solid var(--blue-strong);
+  outline-offset: 0;
+  border-color: var(--blue-strong);
+}
+.ptcell.is-bad {
+  background: #fde7e7;
+  border-color: #c62828;
+  color: #8e1b1b;
+}
+.gridstatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f7a68;
+}
+.gridstatus__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: currentColor;
+}
+.gridstatus.is-bad {
+  color: #c62828;
+}
+.gridstatus.is-saving {
+  color: var(--text-muted);
+}
+.lbstatus .tabs,
+.ptbar .tabs {
+  background: var(--bg);
+}
+@media (max-width: 640px) {
+  .lbstatus .tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    align-self: stretch;
+    gap: 4px;
+    padding: 4px;
+  }
+  .lbstatus .tabs__tab {
+    flex: 1 1 auto;
+    font-size: 13px;
+    padding: 8px 10px;
+    min-height: 36px;
+    white-space: nowrap;
+  }
+}
