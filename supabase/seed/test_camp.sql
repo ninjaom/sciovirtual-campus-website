@@ -23,7 +23,7 @@ on conflict (event_id) do nothing;
 update public.settings set
   leaderboard_state = 'live', leaderboard_top_n = 350, course_top_n = 10, takeover_bonus = 250,
   sessions_per_course = 9, courses_that_count = 3, admin_id_prefix = 'ADM',
-  first_day = '2027-07-06', last_day = '2027-07-24',
+  first_day = '2027-07-05', last_day = '2027-07-23',
   faq_url = 'https://docs.google.com/document/d/example', attendance_url = 'https://www.sciovirtual.org/attendance',
   daily_principles = array['Curiosity', 'Kompetition', 'Mitochondrion', 'Conscientiousness', 'Adroitness'],
   merch_ready = true, merch_instructor_form_url = 'https://forms.gle/example-instructor',
@@ -140,7 +140,7 @@ from public.sessions s join public.courses c on c.id = s.course_id join public.e
 insert into public.attendance (session_id, person_id, rating, comment, submitted_at)
 select s.id, en.person_id, 6 + (hashtext(s.id::text || en.person_id::text) & 3),
        case when hashtext(en.person_id::text || s.number) % 9 = 0 then 'Student comment' end,
-       timestamptz '2027-07-06 14:00-04' + ((s.number - 1) * 2 || ' days')::interval
+       timestamptz '2027-07-05 14:00-04' + ((array[0, 2, 4, 7])[s.number] || ' days')::interval
 from public.enrollments en
 join public.courses c on c.id = en.course_id and c.event_id = (select id from public.events where is_current)
 join public.sessions s on s.course_id = c.id and s.number <= 4

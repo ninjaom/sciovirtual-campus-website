@@ -184,7 +184,7 @@ export function Feedback() {
               <path d="M16 2v4M8 2v4M3 10h18" />
             </svg>
           </span>
-          <h2>[{tab === 'midpoint' ? 'Midpoint' : 'Final'} feedback isn't available yet]</h2>
+          <h2>{tab === 'midpoint' ? 'Midpoint' : 'Final'} Feedback isn't available yet</h2>
           <p>Results Coming Soon!</p>
         </Card>
       )}

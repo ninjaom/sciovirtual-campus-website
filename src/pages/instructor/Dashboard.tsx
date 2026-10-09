@@ -40,7 +40,7 @@ export function Dashboard() {
       .sort((a, b) => a.first_name.localeCompare(b.first_name) || a.last_name.localeCompare(b.last_name))
     const people = await loadPeople([...postRows.map((p) => p.author_id), ...staffRows.map((s) => s.id)])
 
-    const totals = students.map((s) => studentTotal(s.id, items, grades, checkins.get(s.id)?.size ?? 0)).filter((t) => t.hasScore)
+    const totals = students.map((s) => studentTotal(s.id, items, grades, checkins.get(s.id)?.size ?? 0)).filter((t) => t.hasScore || t.total > 0)
     return {
       ratings: must(ratings) as Ratings,
       host: must(host) as { host_email: string | null; host_password: string | null } | null,
