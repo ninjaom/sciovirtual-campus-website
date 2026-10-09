@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/auth'
@@ -32,6 +33,30 @@ interface MyCourse {
   time_slot: string | null
   zoom_join_url: string | null
   sessions: { number: number }[]
+}
+
+/** A scroll area that fades its bottom edge only while more content is below. */
+function ScrollFade({ className, label, children }: { className: string; label: string; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [more, setMore] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const check = () => setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 4)
+    check()
+    el.addEventListener('scroll', check, { passive: true })
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => {
+      el.removeEventListener('scroll', check)
+      ro.disconnect()
+    }
+  }, [])
+  return (
+    <div ref={ref} className={className + (more ? ' has-more' : '')} tabIndex={0} role="region" aria-label={label}>
+      {children}
+    </div>
+  )
 }
 
 /** Latest course announcements, newest first, each linking to its course. */
@@ -73,7 +98,7 @@ export function StudentHome() {
     const [updates, links, feed, courses, standing] = await Promise.all([
       supabase.from('camp_updates').select('id, author_id, title, body, attachments, pinned, created_at').eq('event_id', eventId).order('pinned', { ascending: false }).order('created_at', { ascending: false }),
       supabase.from('quick_links').select('id, label, page, url').eq('event_id', eventId).in('audience', isAdmin ? ['students', 'instructors', 'both'] : ['students', 'both']).order('sort'),
-      isAdmin ? feedQuery.gte('created_at', since).limit(100) : feedQuery.limit(5),
+      feedQuery.gte('created_at', since).limit(100),
       courseIds.length
         ? supabase.from('courses').select('id, short_code, name, time_slot, zoom_join_url, sessions(number)').in('id', courseIds).order('name')
         : Promise.resolve({ data: [], error: null }),
@@ -124,14 +149,18 @@ export function StudentHome() {
         <div className="ihome__main">
           <h2>Camp Updates</h2>
           {!data && <Skeleton height={160} />}
-          {data?.updates.map((u) => <UpdateCard key={u.id} u={u} author={u.author_id ? data.people.get(u.author_id) : null} />)}
+          {data && data.updates.length > 0 && (
+            <ScrollFade className="updscroll" label="Camp Updates">
+              {data.updates.map((u) => <UpdateCard key={u.id} u={u} author={u.author_id ? data.people.get(u.author_id) : null} />)}
+            </ScrollFade>
+          )}
           {data && data.updates.length === 0 && <EmptyState title="No camp updates yet" body="Check back soon" />}
           {data && (
             <CourseFeed
               posts={data.feed}
               people={data.people}
               linkBase={isAdmin ? '/course' : '/courses'}
-              empty={isAdmin ? 'No course announcements in the past 48 hours' : 'No course announcements yet'}
+              empty={isAdmin ? 'No Course Announcements in the past 48 hours' : 'No Course Announcements yet'}
             />
           )}
         </div>

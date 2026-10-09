@@ -297,3 +297,26 @@
   background: var(--teal-soft);
   color: var(--teal-ink);
 }
+
+/* Camp Updates: all of them, in their own scroll area so the course
+   announcements below stay in reach. Soft fade at the edges instead of a
+   hard line (only where content continues). */
+.updscroll {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: min(720px, 75vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+  margin: -2px;
+  border-radius: var(--r-card);
+  scrollbar-width: thin;
+}
+.updscroll.has-more {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent 100%);
+}
+.updscroll:focus-visible {
+  outline: 2px solid var(--blue-strong);
+  outline-offset: 4px;
+}
