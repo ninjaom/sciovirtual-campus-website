@@ -14,6 +14,7 @@ interface CourseRow {
   short_code: string
   name: string
   time_slot: string | null
+  days: string | null
   zoom_join_url: string | null
   archived: boolean
   course_staff: { person_id: string }[]
@@ -44,7 +45,7 @@ export function Courses() {
       const [courses, instructors] = await Promise.all([
         supabase
           .from('courses')
-          .select('id, short_code, name, time_slot, zoom_join_url, archived, course_staff(person_id), enrollments(count), course_zoom_hosts(host_email, host_password), grade_items(id)')
+          .select('id, short_code, name, time_slot, days, zoom_join_url, archived, course_staff(person_id), enrollments(count), course_zoom_hosts(host_email, host_password), grade_items(id)')
           .eq('event_id', eventId)
           .order('sort')
           .order('name'),
@@ -108,7 +109,7 @@ export function Courses() {
                   {list.length === 0 && (
                     <tr>
                       <td colSpan={5} className="muted" style={{ textAlign: 'center', padding: 20 }}>
-                        {tab === 'act' ? '[No courses yet]' : '[No archived courses]'}
+                        {tab === 'act' ? 'No courses yet' : 'No archived courses'}
                       </td>
                     </tr>
                   )}
@@ -166,6 +167,7 @@ function CourseDetails({
     name: course.name,
     short_code: course.short_code,
     time_slot: course.time_slot ?? '',
+    days: course.days ?? '',
     zoom_join_url: course.zoom_join_url ?? '',
     host_email: course.course_zoom_hosts?.host_email ?? '',
     host_password: course.course_zoom_hosts?.host_password ?? '',
@@ -176,7 +178,7 @@ function CourseDetails({
   const [custom, setCustom] = useState(course.grade_items.length > 0)
   useEffect(() => setCustom(course.grade_items.length > 0), [course.grade_items.length])
 
-  const saveCourse = useAutosave<{ name: string; short_code: string; time_slot: string | null; zoom_join_url: string | null }>(async (patch) => {
+  const saveCourse = useAutosave<{ name: string; short_code: string; time_slot: string | null; days: string | null; zoom_join_url: string | null }>(async (patch) => {
     const res = await supabase.from('courses').update(patch).eq('id', course.id)
     if (res.error?.code === '23505') setCodeErr('Another course already uses that code')
     else if (!res.error) {
@@ -242,6 +244,7 @@ function CourseDetails({
       <div className="fieldrow tight">
         <TextField label="Code" value={f.short_code} onChange={(e) => edit('short_code', e.target.value.toUpperCase())} error={codeErr ?? undefined} fieldStyle={{ flex: '1 1 90px' }} />
         <TextField label="Time slot" value={f.time_slot} onChange={(e) => edit('time_slot', e.target.value)} fieldStyle={{ flex: '1 1 150px' }} />
+        <TextField label="Days" value={f.days} onChange={(e) => edit('days', e.target.value)} fieldStyle={{ flex: '1 1 130px' }} />
       </div>
       <TextField label="Zoom link" value={f.zoom_join_url} onChange={(e) => edit('zoom_join_url', e.target.value)} />
       <div className="fieldrow">
@@ -327,7 +330,7 @@ function PickInstructor({ instructors, origin, onClose, onPick }: { instructors:
             <span aria-hidden="true">+</span>
           </button>
         ))}
-        {list.length === 0 && <span className="field__hint">[No instructors found. Add them in Accounts.]</span>}
+        {list.length === 0 && <span className="field__hint">No instructors found. Add them in Accounts.</span>}
       </div>
     </Dialog>
   )

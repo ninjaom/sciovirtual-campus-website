@@ -195,6 +195,19 @@ select e.id, (select id from public.people where person_code = 'ADM27DA01'), x.t
 from public.events e, (values ('Update title', true), ('Update title', false)) as x(title, pinned)
 where e.is_current;
 
+-- ---------------------------------------------------------------------
+-- Fake sign-ups and GTKY: most students get a made-up username so they
+-- show on leaderboards (students without one are left off), and most
+-- have filled out the GTKY form. Real sign-ups are left alone.
+-- ---------------------------------------------------------------------
+update public.people p set username = 'student_' || lower(p.person_code::text)
+where p.role = 'student' and p.auth_user_id is null and p.username is null
+  and right(p.person_code::text, 1) not in ('3', '7');
+update public.people p set gtky_done = right(p.person_code::text, 2) not in ('05', '18', '41', '77')
+where p.role = 'student';
+update public.settings s set gtky_imported_at = now()
+from public.events e where e.id = s.event_id and e.is_current;
+
 commit;
 
 -- Setup codes for accounts that haven't signed up yet (admins and

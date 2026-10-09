@@ -1,19 +1,19 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { csvObjects, downloadFile, toCsv } from '../../lib/csv'
+import { csvObjects, downloadFile, headerKey, toCsv } from '../../lib/csv'
 import { Button, Pill, TableWrap, Tabs } from '../../components/ui'
 import { Dialog } from '../../components/Dialog'
 import { useToast } from '../../components/Toast'
 
-export type ImportKind = 'students' | 'instructors' | 'teams' | 'courses'
+export type ImportKind = 'students' | 'instructors' | 'teams' | 'courses' | 'gtky'
 
-const LABEL: Record<ImportKind, string> = { students: 'Students', instructors: 'Instructors', teams: 'Teams', courses: 'Courses' }
+const LABEL: Record<ImportKind, string> = { students: 'Students', instructors: 'Instructors', teams: 'Teams', courses: 'Courses', gtky: 'GTKY Form' }
 
 /** Template columns (and one example row) for each kind of import. */
 const TEMPLATES: Record<ImportKind, string[][]> = {
   students: [
-    ['Student ID', 'First Name', 'Last Name', 'Grade Level', 'School', 'City', 'State', 'Student Email', 'Parent Email', 'Team', 'Courses'],
-    ['27AA0001', 'First', 'Last', '7', 'School Name', 'Austin', 'TX', 'student@example.com', 'parent@example.com', 'Team A', 'COA; COB'],
+    ['Student ID', 'First Name', 'Last Name', 'Grade Level', 'School', 'City', 'State', 'Student Email', 'Parent Email', 'Courses'],
+    ['27AA0001', 'First', 'Last', '7', 'School Name', 'Austin', 'TX', 'student@example.com', 'parent@example.com', 'COA; COB'],
   ],
   instructors: [
     ['Instructor ID', 'First Name', 'Last Name', 'Email', 'Courses'],
@@ -27,6 +27,7 @@ const TEMPLATES: Record<ImportKind, string[][]> = {
     ['Code', 'Course Name', 'Time Slot', 'Days', 'Zoom Link', 'Zoom Host Email', 'Zoom Host Password'],
     ['COA', 'Course A', '1–2 PM ET', 'Mon, Wed, Fri', 'https://zoom.us/j/0000000000', 'host@example.com', 'password'],
   ],
+  gtky: [['Student ID'], ['27AA0001']],
 }
 
 interface Row {
@@ -73,8 +74,9 @@ export function ImportDialog({
     setFileName(file.name)
     setWarnings([])
     const { rows: objs } = csvObjects(await file.text())
-    const people = (await supabase.from('people').select('person_code, role')).data ?? []
+    const people = (await supabase.from('people').select('person_code, role, gtky_done')).data ?? []
     const byCode = new Map(people.map((p) => [String(p.person_code).toUpperCase(), p.role as string]))
+    const gtkyDone = new Set(people.filter((p) => p.gtky_done).map((p) => String(p.person_code).toUpperCase()))
     const courses = (await supabase.from('courses').select('short_code').eq('event_id', eventId)).data ?? []
     const courseCodes = new Set(courses.map((c) => String(c.short_code).toUpperCase()))
     const teams = (await supabase.from('teams').select('name').eq('event_id', eventId)).data ?? []
@@ -100,6 +102,10 @@ export function ImportDialog({
         else if (codes.some((c) => !courseCodes.has(c))) row.problem = `Unknown course code: ${codes.filter((c) => !courseCodes.has(c)).join(', ')}`
         else if (id && byCode.has(id) && byCode.get(id) !== 'instructor') row.problem = 'That ID belongs to a student or admin'
         else row.isNew = !id || !byCode.has(id)
+      } else if (kind === 'gtky') {
+        const id = pick(v, 'studentid', 'id').toUpperCase()
+        if (byCode.get(id) !== 'student') row.problem = 'No student with that ID'
+        else row.isNew = !gtkyDone.has(id)
       } else if (kind === 'teams') {
         const name = pick(v, 'teamname', 'name', 'team')
         if (!name) row.problem = 'Missing team name'
@@ -121,7 +127,10 @@ export function ImportDialog({
     setBusy(true)
     const warn: string[] = []
     try {
-      if (kind === 'teams') {
+      if (kind === 'gtky') {
+        const res = await supabase.rpc('admin_import_gtky', { p_codes: good.map((r) => pick(r.values, 'studentid', 'id')) })
+        if (res.error) throw res.error
+      } else if (kind === 'teams') {
         for (const part of chunks(good)) {
           const { error } = await supabase.from('teams').upsert(
             part.map((r) => ({
@@ -190,23 +199,6 @@ export function ImportDialog({
           }
           const pid = new Map(saved.map((p) => [String(p.person_code).toUpperCase(), p.id]))
 
-          // Teams (created if new)
-          const teamRows = (await supabase.from('teams').select('id, name').eq('event_id', eventId)).data ?? []
-          const teamId = new Map(teamRows.map((t) => [t.name.toLowerCase(), t.id as string]))
-          const wanted = [...new Set(good.map((r) => pick(r.values, 'team')).filter(Boolean))]
-          for (const name of wanted.filter((n) => !teamId.has(n.toLowerCase()))) {
-            const { data } = await supabase.from('teams').insert({ event_id: eventId, name }).select('id').single()
-            if (data) teamId.set(name.toLowerCase(), data.id)
-          }
-          const withTeam = good.filter((r) => pick(r.values, 'team'))
-          for (const part of chunks(withTeam)) {
-            const ids = part.map((r) => pid.get(pick(r.values, 'studentid', 'id').toUpperCase())!).filter(Boolean)
-            await supabase.from('team_members').delete().eq('event_id', eventId).in('person_id', ids)
-            const { error } = await supabase.from('team_members').insert(
-              part.map((r) => ({ team_id: teamId.get(pick(r.values, 'team').toLowerCase()), person_id: pid.get(pick(r.values, 'studentid', 'id').toUpperCase()), event_id: eventId })),
-            )
-            if (error) throw error
-          }
           // Courses
           const enroll = good.flatMap((r) =>
             splitCodes(pick(r.values, 'courses', 'course')).map((c) => ({ course_id: courseId.get(c)!, person_id: pid.get(pick(r.values, 'studentid', 'id').toUpperCase())! })),
@@ -237,7 +229,7 @@ export function ImportDialog({
           }
         }
       }
-      toast(`Imported ${good.length} ${LABEL[kind].toLowerCase()}`)
+      toast(kind === 'gtky' ? `Imported ${good.length} GTKY ${good.length === 1 ? 'response' : 'responses'}` : `Imported ${good.length} ${LABEL[kind].toLowerCase()}`)
       setWarnings(warn)
       onDone()
       onClose()
@@ -263,7 +255,7 @@ export function ImportDialog({
         <>
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button onClick={run} disabled={busy || !good.length}>
-            {busy ? 'Importing…' : rows ? `Import ${good.length} ${LABEL[kind]}` : 'Import'}
+            {busy ? 'Importing…' : rows ? `Import ${good.length} ${kind === 'gtky' ? (good.length === 1 ? 'Response' : 'Responses') : LABEL[kind]}` : 'Import'}
           </Button>
         </>
       }
@@ -279,6 +271,7 @@ export function ImportDialog({
           </button>
         </p>
         {kind === 'students' && <p className="field__hint">Rows with an existing Student ID update that student. Courses are added, never removed.</p>}
+        {kind === 'gtky' && <p className="field__hint">Every Student ID in the file is marked as having filled out the GTKY form. Other columns are ignored, so the form's response sheet can be used as is.</p>}
         {kind === 'instructors' && <p className="field__hint">Leave Instructor ID blank to create one automatically from the first course code.</p>}
         <label className="filepick">
           <input type="file" accept=".csv,text/csv" onChange={(e) => e.target.files?.[0] && readFile(e.target.files[0])} />
@@ -289,8 +282,8 @@ export function ImportDialog({
         {rows && (
           <>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Pill tone="green">{good.filter((r) => r.isNew).length} new</Pill>
-              <Pill tone="blue">{good.filter((r) => !r.isNew).length} updated</Pill>
+              <Pill tone="green">{good.filter((r) => r.isNew).length} {kind === 'gtky' ? 'to mark' : 'new'}</Pill>
+              <Pill tone="blue">{good.filter((r) => !r.isNew).length} {kind === 'gtky' ? 'already marked' : 'updated'}</Pill>
               {bad.length > 0 && <Pill tone="red">{bad.length} with problems (skipped)</Pill>}
             </div>
             <TableWrap maxHeight={300} sticky>
@@ -306,8 +299,8 @@ export function ImportDialog({
                   {[...bad, ...good].slice(0, 200).map((r) => (
                     <tr key={r.line}>
                       <td className="muted">{r.line}</td>
-                      {Object.values(r.values).slice(0, 4).map((x, i) => <td key={i}>{x}</td>)}
-                      <td className="wrap">{r.problem ? <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{r.problem}</span> : r.isNew ? 'New' : 'Update'}</td>
+                      {TEMPLATES[kind][0].slice(0, 4).map((h, i) => <td key={h}>{r.values[headerKey(h)] ?? Object.values(r.values)[i]}</td>)}
+                      <td className="wrap">{r.problem ? <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{r.problem}</span> : kind === 'gtky' ? (r.isNew ? 'Mark' : 'Already marked') : r.isNew ? 'New' : 'Update'}</td>
                     </tr>
                   ))}
                 </tbody>

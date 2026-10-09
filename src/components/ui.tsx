@@ -254,7 +254,7 @@ export function SavedStatus({ state = 'saved' }: { state?: 'saved' | 'saving' | 
           <path d="M5 12l5 5 9-10" />
         </svg>
       )}
-      {state === 'saved' ? 'All changes saved' : state === 'saving' ? '[Saving…]' : '[Couldn’t save. Try again.]'}
+      {state === 'saved' ? 'All Changes Saved' : state === 'saving' ? 'Saving…' : 'Couldn’t save. Try again.'}
     </span>
   )
 }

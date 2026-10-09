@@ -61,7 +61,7 @@ export function Styleguide() {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <Button onClick={(e) => { setOrigin(e.currentTarget); setDlg(true) }}>Add Event</Button>
             <Button variant="danger" onClick={(e) => { setOrigin(e.currentTarget); setDel(true) }}>Delete</Button>
-            <Button variant="secondary" onClick={() => toast('All changes saved')}>Success toast</Button>
+            <Button variant="secondary" onClick={() => toast('All Changes Saved')}>Success toast</Button>
             <Button variant="outline" onClick={() => toast('Something went wrong', 'error')}>Error toast</Button>
           </div>
         </Card>

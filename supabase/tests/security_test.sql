@@ -299,5 +299,46 @@ select tests.as_user('00000000-0000-0000-0000-0000000000c1');
 select tests.ok((select count(*) from public.quick_links) = 1, 'signed-in people read quick links');
 select tests.ok((select count(*) from public.admin_scores_over_max()) = 0, 'students get nothing from the over-maximum list');
 
+
+-- ---------------------------------------------------------------------
+-- Phase 2 follow-ups
+-- ---------------------------------------------------------------------
+-- Leaderboards leave out students who haven't signed up (S4), but their
+-- course takeover still counts for their team.
+select tests.as_postgres();
+insert into public.enrollments values ('30000000-0000-0000-0000-00000000000b', '20000000-0000-0000-0000-0000000000c4');
+insert into public.team_members values ('40000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-0000000000c4', '10000000-0000-0000-0000-000000000001');
+insert into public.grades (course_id, person_id, grade_item_id, points) values
+  ('30000000-0000-0000-0000-00000000000b', '20000000-0000-0000-0000-0000000000c4', '50000000-0000-0000-0000-000000000002', 300);
+select tests.as_user('00000000-0000-0000-0000-0000000000a1');
+select tests.ok(not exists (select 1 from jsonb_array_elements(public.get_leaderboard() -> 'individual') r where r ->> 'username' is null),
+  'students who have not signed up are left off the leaderboard');
+select tests.ok(not exists (select 1 from jsonb_array_elements(public.get_leaderboard() -> 'courses') c, jsonb_array_elements(c -> 'rows') r where r ->> 'username' is null),
+  'students who have not signed up are left off course leaderboards');
+select tests.ok((select (r ->> 'rank')::int from jsonb_array_elements(public.get_leaderboard() -> 'courses') c, jsonb_array_elements(c -> 'rows') r
+                 where c ->> 'name' = 'Course B' and r ->> 'username' = 'username_02') = 1, 'course ranks count only signed-up students');
+select tests.ok((select (t ->> 'takeovers')::numeric from jsonb_array_elements(public.get_leaderboard() -> 'teams') t where t ->> 'name' = 'Team B') = 250,
+  'a student who has not signed up still earns their team the takeover bonus');
+
+-- GTKY
+select tests.ok(public.admin_overview() -> 'gtky_missing' = 'null'::jsonb, 'GTKY count is hidden until the first import');
+select tests.as_user('00000000-0000-0000-0000-0000000000c1');
+select tests.refused($$update public.people set gtky_done = true where person_code = '27AA0001'$$, 'student cannot mark their own GTKY form');
+select tests.refused($$select public.admin_import_gtky(array['27AA0001'])$$, 'student cannot import the GTKY form');
+select tests.as_user('00000000-0000-0000-0000-0000000000a1');
+select tests.ok(public.admin_import_gtky(array['27aa0001 ', '27ZZ9999']) = '{"marked": 1, "unknown": ["27ZZ9999"]}'::jsonb, 'GTKY import marks known IDs and lists unknown ones');
+select tests.ok((public.admin_overview() ->> 'gtky_missing')::int = 3, 'overview counts students missing the GTKY form');
+
+-- Deleting an account: SQL Editor only
+select tests.refused($$select public.delete_person('27DD0004')$$, 'admins cannot delete accounts from the website');
+select tests.as_user('00000000-0000-0000-0000-0000000000c1');
+select tests.refused($$select public.delete_person('27DD0004')$$, 'students cannot delete accounts');
+select tests.as_postgres();
+select public.delete_person('27cc0003');
+select tests.ok(not exists (select 1 from public.people where person_code = '27CC0003')
+  and not exists (select 1 from auth.users where id = '00000000-0000-0000-0000-0000000000c3')
+  and not exists (select 1 from public.grades where person_id = '20000000-0000-0000-0000-0000000000c3'),
+  'deleting an account removes the person, their sign-in and their scores');
+
 select tests.as_postgres();
 rollback;

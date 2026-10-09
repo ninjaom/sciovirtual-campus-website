@@ -97,7 +97,7 @@ export function HomeContent() {
               )}
             />
           )}
-          {data && data.reminders.length === 0 && <span className="field__hint">[No reminders yet]</span>}
+          {data && data.reminders.length === 0 && <span className="field__hint">No reminders yet</span>}
         </Card>
 
         <Card title="Quick Links" actions={<Button variant="secondary" onClick={(e) => { setOrigin(e.currentTarget); setEditLink('new') }}>+ Add</Button>}>
@@ -125,17 +125,17 @@ export function HomeContent() {
               )}
             />
           )}
-          {data && data.links.length === 0 && <span className="field__hint">[No quick links yet]</span>}
+          {data && data.links.length === 0 && <span className="field__hint">No quick links yet</span>}
         </Card>
       </div>
 
       {ev.data?.settings && <LinksAndDates eventId={ev.data.settings.event_id} initial={ev.data.settings} />}
 
       {editReminder && eventId && (
-        <EditReminder reminder={editReminder === 'new' ? null : editReminder} eventId={eventId} sort={(data?.reminders.length ?? 0) + 1} origin={origin} onClose={() => setEditReminder(null)} onSaved={() => { setEditReminder(null); reload(); toast('All changes saved') }} />
+        <EditReminder reminder={editReminder === 'new' ? null : editReminder} eventId={eventId} sort={(data?.reminders.length ?? 0) + 1} origin={origin} onClose={() => setEditReminder(null)} onSaved={() => { setEditReminder(null); reload(); toast('All Changes Saved') }} />
       )}
       {editLink && eventId && (
-        <EditLink link={editLink === 'new' ? null : editLink} eventId={eventId} sort={(data?.links.length ?? 0) + 1} origin={origin} onClose={() => setEditLink(null)} onSaved={() => { setEditLink(null); reload(); toast('All changes saved') }} />
+        <EditLink link={editLink === 'new' ? null : editLink} eventId={eventId} sort={(data?.links.length ?? 0) + 1} origin={origin} onClose={() => setEditLink(null)} onSaved={() => { setEditLink(null); reload(); toast('All Changes Saved') }} />
       )}
     </>
   )

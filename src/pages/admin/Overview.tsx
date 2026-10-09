@@ -14,6 +14,7 @@ interface OverviewData {
   leaderboard_state: 'live' | 'frozen' | 'hidden' | null
   leaderboard_updated: string | null
   first_day: string | null
+  gtky_missing: number | null
   missing_scores: { item: string; courses: number }[]
   feedback_missing: ('midpoint' | 'final')[]
   activity: { who: string; at: string; what: string }[]
@@ -40,6 +41,8 @@ export function Overview() {
 
   const attention: { text: string; to: string }[] = []
   if (data) {
+    if (data.gtky_missing)
+      attention.push({ text: `${data.gtky_missing} ${data.gtky_missing === 1 ? "student hasn't" : "students haven't"} filled out the GTKY form`, to: '/admin/accounts' })
     if (started)
       for (const m of data.missing_scores)
         attention.push({ text: `${m.courses} ${m.courses === 1 ? 'course has' : 'courses have'} no ${m.item} scores yet`, to: '/admin/grade-items' })
@@ -61,12 +64,12 @@ export function Overview() {
         <div className="stat">
           <span className="stat__label">Student Count</span>
           <span className="stat__value">{loading || !data ? <Skeleton width={70} height={34} /> : data.students}</span>
-          <span className="stat__sub">{data ? `[${data.students_signed_up} Signed Up]` : ' '}</span>
+          <span className="stat__sub">{data ? `${data.students_signed_up} Signed Up` : ' '}</span>
         </div>
         <div className="stat">
           <span className="stat__label">Instructor Count</span>
           <span className="stat__value">{loading || !data ? <Skeleton width={70} height={34} /> : data.instructors}</span>
-          <span className="stat__sub">{data ? `${data.instructors_signed_up} Finished Onboarding` : ' '}</span>
+          <span className="stat__sub">{data ? `${data.instructors_signed_up} Signed Up` : ' '}</span>
         </div>
         <div className="stat">
           <span className="stat__label">Courses</span>
@@ -83,7 +86,7 @@ export function Overview() {
       <div className="arow">
         <Card title="Needs Attention [URGENT]">
           {attention.length === 0 ? (
-            <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>[Nothing needs attention right now]</p>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Nothing needs attention right now</p>
           ) : (
             attention.map((a) => (
               <Link key={a.text} to={a.to} className="attn">
@@ -97,7 +100,7 @@ export function Overview() {
           )}
         </Card>
         <Card title="Recent Activity" className="activity">
-          {data && data.activity.length === 0 && <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>[No activity yet]</p>}
+          {data && data.activity.length === 0 && <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>No activity yet</p>}
           {data?.activity.map((a, i) => (
             <div key={i} className="act">
               <div className="act__top">

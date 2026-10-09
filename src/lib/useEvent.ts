@@ -37,7 +37,8 @@ export function useCurrentEvent() {
 /**
  * "Day 4 of Camp · Mon, Jul 13". Camp days are Mondays, Wednesdays and
  * Fridays (matching the mockup: Jul 6 is day 1, Jul 13 is day 4).
- * Nothing is shown before the first day or after the last day.
+ * Tuesdays and Thursdays show "Live Challenge Day · Tue, Jul 7".
+ * Nothing is shown before the first day, after the last day or on weekends.
  */
 export const CAMP_WEEKDAYS = [1, 3, 5]
 
@@ -47,9 +48,11 @@ export function campDayLabel(firstDay: string | null, lastDay: string | null, no
   const start = new Date(firstDay + 'T00:00:00')
   if (today < start) return null
   if (lastDay && today > new Date(lastDay + 'T00:00:00')) return null
+  const label = today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  // Tuesdays and Thursdays have no classes, only live challenges.
+  if (today.getDay() === 2 || today.getDay() === 4) return `Live Challenge Day · ${label}`
   if (!CAMP_WEEKDAYS.includes(today.getDay())) return null
   let n = 0
   for (const d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) if (CAMP_WEEKDAYS.includes(d.getDay())) n++
-  const label = today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
   return `Day ${n} of Camp · ${label}`
 }

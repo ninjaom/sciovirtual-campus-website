@@ -225,7 +225,7 @@ export function Accounts() {
                 {list.length === 0 && (
                   <tr>
                     <td colSpan={cols.length + 1} className="muted" style={{ textAlign: 'center', padding: 20 }}>
-                      {needle ? '[No accounts match your search]' : '[No accounts yet]'}
+                      {needle ? 'No accounts match your search' : 'No accounts yet'}
                     </td>
                   </tr>
                 )}
@@ -255,7 +255,7 @@ export function Accounts() {
       </Dialog>
 
       {editing && data && (
-        <EditPerson person={editing} teams={data.teams} courses={data.courses} eventId={eventId} origin={origin} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); toast('All changes saved') }} />
+        <EditPerson person={editing} teams={data.teams} courses={data.courses} eventId={eventId} origin={origin} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); reload(); toast('All Changes Saved') }} />
       )}
       {adding && data && (
         <AddPerson
@@ -270,7 +270,7 @@ export function Accounts() {
         />
       )}
       {teamEdit && eventId && (
-        <EditTeam team={teamEdit === 'new' ? null : teamEdit} eventId={eventId} origin={origin} onClose={() => setTeamEdit(null)} onSaved={() => { setTeamEdit(null); reload(); toast('All changes saved') }} />
+        <EditTeam team={teamEdit === 'new' ? null : teamEdit} eventId={eventId} origin={origin} onClose={() => setTeamEdit(null)} onSaved={() => { setTeamEdit(null); reload(); toast('All Changes Saved') }} />
       )}
       {members && data && eventId && (
         <TeamMembers team={members} people={data.people} eventId={eventId} origin={origin} onClose={() => setMembers(null)} onChanged={reload} />
@@ -278,7 +278,7 @@ export function Accounts() {
       {importing && eventId && (
         <ImportDialog
           initial={(tab === 'ins' ? 'instructors' : tab === 'team' ? 'teams' : 'students') as ImportKind}
-          kinds={['students', 'instructors', 'teams']}
+          kinds={['students', 'instructors', 'teams', 'gtky']}
           eventId={eventId}
           origin={origin}
           onClose={() => setImporting(false)}
@@ -456,7 +456,7 @@ function CoursePicker({ courses, value, onChange }: { courses: Course[]; value: 
             {c.name}
           </label>
         ))}
-        {courses.length === 0 && <span className="field__hint">[Add courses first]</span>}
+        {courses.length === 0 && <span className="field__hint">Add courses first</span>}
       </div>
     </fieldset>
   )
@@ -671,7 +671,7 @@ function TeamMembers({
               <button type="button" className="btn btn--sm btn--danger-outline" aria-label={`Remove ${p.first_name} ${p.last_name}`} onClick={() => remove(p)}>×</button>
             </div>
           ))}
-          {members.length === 0 && <span className="field__hint">[No members yet]</span>}
+          {members.length === 0 && <span className="field__hint">No members yet</span>}
         </div>
       </div>
     </Dialog>

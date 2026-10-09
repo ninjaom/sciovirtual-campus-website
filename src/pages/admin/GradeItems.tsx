@@ -103,7 +103,7 @@ export function GradeItems() {
 
       {data && data.over.length > 0 && (
         <div role="alert" className="warnbox">
-          <strong>[These scores are above their item's maximum. Ask the course's instructors to fix them:]</strong>
+          <strong>These scores are above their item's maximum. Ask the course's instructors to fix them:</strong>
           <ul>
             {data.over.map((o, i) => (
               <li key={i}>
@@ -148,7 +148,7 @@ export function GradeItems() {
                         aria-label={`Max points for ${i.name}`}
                         value={num(Number(i.max_points))}
                         readOnly={i.kind === 'attendance'}
-                        title={i.kind === 'attendance' ? '[Set by points per session × sessions]' : undefined}
+                        title={i.kind === 'attendance' ? 'Set by points per session × sessions' : undefined}
                         onChange={(e) => {
                           const v = Number(e.target.value.replace(/[^\d.]/g, ''))
                           if (Number.isNaN(v)) return
@@ -213,7 +213,7 @@ export function GradeItems() {
             <Button variant="outline" size="sm" onClick={(e) => { setOrigin(e.currentTarget); setOverrideFor(c.id) }}>Edit</Button>
           </ListRow>
         ))}
-        {data && overrides.length === 0 && <span className="field__hint">[No courses have their own grade items]</span>}
+        {data && overrides.length === 0 && <span className="field__hint">No courses have their own grade items</span>}
       </Card>
 
       <Card className="acard" title="Scoring Rules">
@@ -243,7 +243,7 @@ export function GradeItems() {
           sort={shared.length + 1}
           origin={origin}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); reload(); toast('All changes saved') }}
+          onSaved={() => { setEditing(null); reload(); toast('All Changes Saved') }}
         />
       )}
       {overrideFor === 'pick' && data && (
@@ -356,12 +356,12 @@ function EditItem({
       }
     >
       {confirmDelete ? (
-        <p style={{ fontSize: 15, color: 'var(--text-muted)' }}>[Any scores entered for this item will be deleted too.] This can't be undone.</p>
+        <p style={{ fontSize: 15, color: 'var(--text-muted)' }}>Any scores entered for this item will be deleted too. This can't be undone.</p>
       ) : (
         <div className="acard dlgform">
           <TextField label="Item" value={name} onChange={(e) => setName(e.target.value)} />
           {!isAtt && <TextField label="Max Points" inputMode="numeric" value={max} onChange={(e) => setMax(e.target.value.replace(/[^\d.]/g, ''))} />}
-          {isAtt && <span className="field__hint">[Attendance points are set by points per attended session × sessions per course.]</span>}
+          {isAtt && <span className="field__hint">Attendance points are set by points per attended session × sessions per course.</span>}
           {err && <div role="alert" className="auth__formerror">{err}</div>}
         </div>
       )}
@@ -388,7 +388,7 @@ function PickCourse({ courses, origin, onClose, onPick }: { courses: { id: strin
         <SelectField label="Course" value={id} onChange={(e) => setId(e.target.value)}>
           {courses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </SelectField>
-        <span className="field__hint">[The course starts with a copy of the shared grade items, which you can then change.]</span>
+        <span className="field__hint">The course starts with a copy of the shared grade items, which you can then change.</span>
       </div>
     </Dialog>
   )
@@ -454,7 +454,7 @@ function EditOverride({
       width={560}
       footer={
         <>
-          <Button variant="outline" className="btn--danger-outline" style={{ marginRight: 'auto' }} onClick={turnOff}>[Use shared items]</Button>
+          <Button variant="outline" className="btn--danger-outline" style={{ marginRight: 'auto' }} onClick={turnOff}>Use shared items</Button>
           <Button onClick={onClose}>Done</Button>
         </>
       }
