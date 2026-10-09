@@ -1,7 +1,7 @@
 -- FAKE CAMP for the TEST project only. Never run on the real project.
 -- Paste into the test project's SQL Editor and run. Safe to run again.
 --
--- Builds a full fake ScioCamp 2027: 15 courses, 25 instructors, 500
+-- Builds a full fake ScioCamp 2027: 15 courses, 95 instructors, 500
 -- students, 12 teams, 9 sessions per course with check-ins for the first
 -- 4, Midpoint scores, live events and async challenges with points.
 --
@@ -69,13 +69,14 @@ insert into public.people (person_code, role, first_name, last_name, email) valu
   ('ADM27DB01', 'admin', 'Director', 'B', 'director.b@example.com')
 on conflict (person_code) do nothing;
 
--- Instructors: one per course, plus a second for the first 10 courses
+-- Instructors: 95 in all. Six per course, plus a seventh for the first 5
+-- courses. IDs: course code + 27 + I..O + course letter + 01.
 insert into public.people (person_code, role, first_name, last_name, email)
-select 'CO' || chr(64 + i) || '27I' || chr(64 + i) || '01', 'instructor'::public.role, 'Instructor', chr(64 + i), 'instructor.' || lower(chr(64 + i)) || '@example.com'
-from generate_series(1, 15) i
-union all
-select 'CO' || chr(64 + i) || '27J' || chr(64 + i) || '01', 'instructor'::public.role, 'Instructor', chr(64 + i) || '2', 'instructor.' || lower(chr(64 + i)) || '2@example.com'
-from generate_series(1, 10) i
+select 'CO' || chr(64 + i) || '27' || chr(72 + k) || chr(64 + i) || '01', 'instructor'::public.role, 'Instructor',
+       chr(64 + i) || case when k = 1 then '' else k::text end,
+       'instructor.' || lower(chr(64 + i)) || case when k = 1 then '' else k::text end || '@example.com'
+from generate_series(1, 15) i, generate_series(1, 7) k
+where k <= 6 or i <= 5
 on conflict (person_code) do nothing;
 
 -- Students: 27 + two letters + 4 digits
@@ -94,7 +95,7 @@ select c.id, p.id
 from public.people p
 join public.courses c on c.short_code = left(p.person_code::text, 3)
 join public.events e on e.id = c.event_id and e.is_current
-where p.role = 'instructor' and p.person_code::text ~ '^CO[A-O]27[IJ][A-O]01$';
+where p.role = 'instructor' and p.person_code::text ~ '^CO[A-O]27[I-O][A-O]01$';
 
 -- Each student takes 1 to 4 courses (spread evenly)
 insert into public.enrollments (course_id, person_id)
