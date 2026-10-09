@@ -38,7 +38,12 @@ type State = 'live' | 'frozen' | 'hidden'
 const TAKEOVERS = 'takeovers'
 
 const fmt = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toLocaleString('en-US'))
-const kindFor = (name: string): Challenge['kind'] => (/^async/i.test(name) ? 'async' : /^revenge/i.test(name) ? 'revenge' : 'live')
+const STATE_NAME: Record<State, string> = { live: 'Live', frozen: 'Frozen', hidden: 'Frozen & Hidden' }
+const STATE_NOTE: Record<State, string> = {
+  live: 'Students and instructors will see the current standings.',
+  frozen: 'Students and instructors will see the standings from when the leaderboard was frozen, until you switch back to Live.',
+  hidden: 'Students and instructors will not be able to see the leaderboard.',
+}
 
 export function LeaderboardPoints() {
   const toast = useToast()
@@ -67,7 +72,9 @@ export function LeaderboardPoints() {
     }
   }, [eventId])
 
+  const [asking, setAsking] = useState<State | null>(null)
   async function setState(st: State) {
+    setAsking(null)
     if (!eventId || !data) return
     setData((d) => (d ? { ...d, settings: { ...d.settings, leaderboard_state: st } } : d))
     const res = await supabase.from('settings').update({ leaderboard_state: st }).eq('event_id', eventId)
@@ -105,7 +112,7 @@ export function LeaderboardPoints() {
             <Tabs<State>
               label="Leaderboard status"
               value={st}
-              onChange={setState}
+              onChange={(v) => v !== st && setAsking(v)}
               options={[
                 { value: 'live', label: 'Live' },
                 { value: 'frozen', label: 'Frozen' },
@@ -117,6 +124,23 @@ export function LeaderboardPoints() {
           {data && eventId && <CutoffFields eventId={eventId} topN={data.settings.leaderboard_top_n} courseN={data.settings.course_top_n} students={data.students} />}
         </div>
       </Card>
+
+      {asking && (
+        <Dialog
+          open
+          origin={null}
+          onClose={() => setAsking(null)}
+          title="Are you sure?"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setAsking(null)}>Cancel</Button>
+              <Button onClick={() => void setState(asking)}>Switch to {STATE_NAME[asking]}</Button>
+            </>
+          }
+        >
+          <p style={{ fontSize: 15, color: 'var(--text-muted)' }}>{STATE_NOTE[asking]}</p>
+        </Dialog>
+      )}
 
       <Card
         title="Event Columns"
@@ -146,7 +170,7 @@ export function LeaderboardPoints() {
                 <tr>
                   <td className="strong">Course Takeovers</td>
                   <td className="num muted">—</td>
-                  <td className="num">{fmt(data.settings.takeover_bonus)} per takeover</td>
+                  <td className="num">{fmt(data.settings.takeover_bonus)} per Takeover</td>
                   <td className="num">
                     <Switch checked={data.settings.takeovers_shown} label="Show Course Takeovers" onChange={(v) => toggleShown(TAKEOVERS, v)} />
                   </td>
@@ -230,7 +254,7 @@ function TakeoverDialog({ eventId, bonus, origin, onClose, onSaved }: { eventId:
   return (
     <Dialog open origin={origin} onClose={onClose} title="Edit Course Takeovers" footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button onClick={() => save()}>Save</Button></>}>
       <form onSubmit={save} className="dlgform">
-        <TextField label="Points per takeover" inputMode="numeric" value={v} onChange={(e) => setV(e.target.value)} error={err ?? undefined} hint="The top scorer in each course earns their team this many points" autoFocus />
+        <TextField label="Points per Takeover" inputMode="numeric" value={v} onChange={(e) => setV(e.target.value)} error={err ?? undefined} hint="The top scorer in each course earns their team this many points" autoFocus />
       </form>
     </Dialog>
   )
@@ -255,6 +279,7 @@ function EventDialog({
   const [ind, setInd] = useState(event?.individual_max == null ? '' : String(event.individual_max))
   const [team, setTeam] = useState(event?.team_max == null ? '' : String(event.team_max))
   const [shown, setShown] = useState(event?.visible ?? true)
+  const [kind, setKind] = useState<Challenge['kind']>(event?.kind ?? 'live')
   const [errs, setErrs] = useState<{ name?: string; ind?: string; team?: string; form?: string }>({})
   const [confirm, setConfirm] = useState(false)
 
@@ -269,10 +294,10 @@ function EventDialog({
     }
     setErrs(next)
     if (Object.keys(next).length) return
-    const row = { name: name.trim(), individual_max: asMax(ind), team_max: asMax(team), visible: shown }
+    const row = { name: name.trim(), kind, individual_max: asMax(ind), team_max: asMax(team), visible: shown }
     const res = event
       ? await supabase.from('challenges').update(row).eq('id', event.id)
-      : await supabase.from('challenges').insert({ ...row, event_id: eventId, kind: kindFor(row.name), sort })
+      : await supabase.from('challenges').insert({ ...row, event_id: eventId, sort })
     if (res.error) return setErrs({ form: res.error.code === '23514' || res.error.code === '22003' ? 'Some points already entered are above the new maximum' : 'Something went wrong. Please try again.' })
     onSaved(event ? 'All Changes Saved' : 'Added')
   }
@@ -321,6 +346,20 @@ function EventDialog({
     >
       <form onSubmit={save} className="dlgform" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <TextField label="Event" value={name} onChange={(e) => setName(e.target.value)} error={errs.name} autoFocus />
+        <div className="field">
+          <span className="field__label">Type</span>
+          <Tabs<Challenge['kind']>
+            label="Type"
+            value={kind}
+            onChange={setKind}
+            fill
+            options={[
+              { value: 'live', label: 'Live' },
+              { value: 'async', label: 'Asynchronous' },
+              ...(event?.kind === 'revenge' ? [{ value: 'revenge' as const, label: 'Revenge' }] : []),
+            ]}
+          />
+        </div>
         <div className="fieldrow">
           <TextField label="Individual max" inputMode="numeric" value={ind} onChange={(e) => setInd(e.target.value)} error={errs.ind} fieldStyle={{ flex: '1 1 140px' }} />
           <TextField label="Team Max" inputMode="numeric" value={team} onChange={(e) => setTeam(e.target.value)} error={errs.team} fieldStyle={{ flex: '1 1 140px' }} />
@@ -490,7 +529,7 @@ function EnterPoints({
   }
 
   const status = bad
-    ? { text: 'Not saved: above the maximum', cls: 'is-bad' }
+    ? { text: 'Not Saved: Above the Maximum', cls: 'is-bad' }
     : failed
       ? { text: 'Couldn’t save. Try again.', cls: 'is-bad' }
       : pending > 0 || timers.current.size > 0

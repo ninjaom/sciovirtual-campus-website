@@ -200,28 +200,14 @@ export function Leaderboard() {
       <main className="lbpage">
         {error && <p role="alert">Something went wrong loading the leaderboard. ({error})</p>}
 
-        {b?.state === 'frozen' && (
+        {b?.state === 'frozen' && !isAdmin && (
           <div className="lbnotice">
             <span className="lbnotice__icon" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2v20M4.9 4.9l14.2 14.2M2 12h20M4.9 19.1L19.1 4.9" />
               </svg>
             </span>
-            <span>
-              {isAdmin
-                ? 'You are seeing live standings. Students see the standings from when the leaderboard was frozen.'
-                : 'Standings are frozen. New points will appear when the directors unfreeze the leaderboard.'}
-            </span>
-          </div>
-        )}
-        {b?.state === 'hidden' && isAdmin && (
-          <div className="lbnotice">
-            <span className="lbnotice__icon" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A10 10 0 0 1 22 12a17 17 0 0 1-3 3.6M6.6 6.6A17 17 0 0 0 2 12a10 10 0 0 0 13.3 5.4" />
-              </svg>
-            </span>
-            <span>You are seeing live standings. The leaderboard is hidden from students and instructors.</span>
+            <span>Standings are frozen. New points will appear when the directors unfreeze the leaderboard.</span>
           </div>
         )}
 
@@ -298,7 +284,7 @@ export function Leaderboard() {
                 </tbody>
               </table>
             </div>
-            {b.individual.length === 0 && <p className="lbempty">No scores yet</p>}
+            {b.individual.length === 0 && <p className="lbempty">No Scores Yet</p>}
           </section>
         )}
 
@@ -399,7 +385,7 @@ export function Leaderboard() {
                 </tbody>
               </table>
             </div>
-            {course && course.rows.length === 0 && <p className="lbempty">No scores yet</p>}
+            {course && course.rows.length === 0 && <p className="lbempty">No Scores Yet</p>}
           </section>
         )}
       </main>
