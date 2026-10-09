@@ -1,7 +1,7 @@
 -- FAKE CAMP for the TEST project only. Never run on the real project.
 -- Paste into the test project's SQL Editor and run. Safe to run again.
 --
--- Builds a full fake ScioCamp 2027: 15 courses, 95 instructors, 500
+-- Builds a full fake ScioCamp 2027: 25 courses, 95 instructors, 500
 -- students, 12 teams, 9 sessions per course with check-ins for the first
 -- 4, Midpoint scores, live events and async challenges with points.
 --
@@ -54,7 +54,7 @@ insert into public.courses (event_id, short_code, name, time_slot, days, zoom_jo
 select e.id, 'CO' || chr(64 + i), 'Course ' || chr(64 + i),
        (array['12–1 PM ET', '1–2 PM ET', '2–3 PM ET', '4–5 PM ET', '6–7 PM ET'])[1 + (i - 1) % 5],
        'Mon, Wed, Fri', 'https://us02web.zoom.us/j/00000000' || lpad(i::text, 2, '0'), i
-from public.events e, generate_series(1, 15) i
+from public.events e, generate_series(1, 25) i
 where e.is_current;
 
 insert into public.course_zoom_hosts (course_id, host_email, host_password)
@@ -69,14 +69,17 @@ insert into public.people (person_code, role, first_name, last_name, email) valu
   ('ADM27DB01', 'admin', 'Director', 'B', 'director.b@example.com')
 on conflict (person_code) do nothing;
 
--- Instructors: 95 in all. Six per course, plus a seventh for the first 5
--- courses. IDs: course code + 27 + I..O + course letter + 01.
+-- Instructors: 95 in all. Four per course for the first 20 courses, three
+-- for the last 5. IDs: course code + 27 + I..L + course letter + 01.
+-- Fake instructors from earlier runs who never signed up are cleared first.
+delete from public.people
+where role = 'instructor' and auth_user_id is null and person_code::text ~ '^CO[A-Z]27[A-Z][A-Z]01$';
 insert into public.people (person_code, role, first_name, last_name, email)
 select 'CO' || chr(64 + i) || '27' || chr(72 + k) || chr(64 + i) || '01', 'instructor'::public.role, 'Instructor',
        chr(64 + i) || case when k = 1 then '' else k::text end,
        'instructor.' || lower(chr(64 + i)) || case when k = 1 then '' else k::text end || '@example.com'
-from generate_series(1, 15) i, generate_series(1, 7) k
-where k <= 6 or i <= 5
+from generate_series(1, 25) i, generate_series(1, 4) k
+where k <= 3 or i <= 20
 on conflict (person_code) do nothing;
 
 -- Students: 27 + two letters + 4 digits
@@ -95,7 +98,7 @@ select c.id, p.id
 from public.people p
 join public.courses c on c.short_code = left(p.person_code::text, 3)
 join public.events e on e.id = c.event_id and e.is_current
-where p.role = 'instructor' and p.person_code::text ~ '^CO[A-O]27[I-O][A-O]01$';
+where p.role = 'instructor' and p.person_code::text ~ '^CO[A-Y]27[I-L][A-Y]01$';
 
 -- Each student takes 1 to 4 courses (spread evenly)
 insert into public.enrollments (course_id, person_id)
@@ -104,7 +107,7 @@ from (select p.id, row_number() over (order by p.person_code) as n
       from public.people p where p.role = 'student' and p.person_code::text ~ '^27[A-Z]{2}[0-9]{4}$') s
 cross join generate_series(0, 3) k
 join public.courses c on c.event_id = (select id from public.events where is_current)
-  and c.sort = 1 + ((s.n * 7 + k * 4) % 15)
+  and c.sort = 1 + ((s.n * 7 + k * 6) % 25)
 where k < 1 + (s.n % 4);
 
 -- ---------------------------------------------------------------------
@@ -146,7 +149,7 @@ select en.course_id, en.person_id, gi.id, 150 + (abs(hashtext(en.person_id::text
 from public.enrollments en
 join public.courses c on c.id = en.course_id and c.event_id = (select id from public.events where is_current)
 join public.grade_items gi on gi.event_id = c.event_id and gi.course_id is null and gi.name = 'Midpoint'
-where c.sort <= 12 and abs(hashtext(en.person_id::text)) % 10 <> 0;
+where c.sort <= 20 and abs(hashtext(en.person_id::text)) % 10 <> 0;
 insert into public.grades (course_id, person_id, grade_item_id, points)
 select en.course_id, en.person_id, gi.id, abs(hashtext(en.course_id::text || en.person_id::text)) % 91
 from public.enrollments en
@@ -228,7 +231,7 @@ select c.id, 'midpoint',
     jsonb_build_object('question', 'Comments', 'answers', jsonb_build_array('Student answer', 'Student answer'))),
   12 + c.sort % 10, 412, 1 + c.sort, timestamptz '2027-07-15 12:00-04'
 from public.courses c
-where c.event_id = (select id from public.events where is_current) and c.sort <= 12;
+where c.event_id = (select id from public.events where is_current) and c.sort <= 20;
 
 insert into public.grade_edits (course_id, person_id, grade_item_id, old_points, new_points, edited_by, edited_at)
 select g.course_id, g.person_id, g.grade_item_id, case when n = 1 then null else g.points - 10 end, g.points,
