@@ -102,15 +102,15 @@ insert into public.grade_items (id, event_id, name, kind, max_points, points_per
   ('50000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 'Attendance', 'attendance', 270, 30, 3),
   ('50000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 'Bonus', 'manual', 90, null, 4);
 
-insert into public.sessions (id, course_id, number) values
-  ('60000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-00000000000a', 1),
-  ('60000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-00000000000a', 2),
-  ('60000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-00000000000b', 1);
-insert into public.attendance_codes values ('60000000-0000-0000-0000-000000000001', 'APPLE');
-insert into public.attendance (session_id, person_id, rating, comment) values
-  ('60000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-0000000000c1', 9, 's1 comment'),
-  ('60000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-0000000000c1', 8, null),
-  ('60000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-0000000000c2', 7, 's2 comment');
+-- Sessions are created automatically for each course (9 by default).
+insert into public.attendance_codes
+select id, 'APPLE' from public.sessions where course_id = '30000000-0000-0000-0000-00000000000a' and number = 1;
+insert into public.attendance (session_id, person_id, rating, comment)
+select s.id, x.person, x.rating, x.comment
+from (values ('30000000-0000-0000-0000-00000000000a'::uuid, 1, '20000000-0000-0000-0000-0000000000c1'::uuid, 9, 's1 comment'),
+             ('30000000-0000-0000-0000-00000000000a'::uuid, 2, '20000000-0000-0000-0000-0000000000c1'::uuid, 8, null),
+             ('30000000-0000-0000-0000-00000000000a'::uuid, 1, '20000000-0000-0000-0000-0000000000c2'::uuid, 7, 's2 comment')) as x(course, num, person, rating, comment)
+join public.sessions s on s.course_id = x.course and s.number = x.num;
 
 -- Scores (as postgres, so the log has no editor)
 insert into public.grades (course_id, person_id, grade_item_id, points) values
@@ -264,6 +264,40 @@ select tests.ok(jsonb_array_length(public.get_leaderboard() -> 'individual') = 3
 update public.settings set leaderboard_state = 'live';
 select tests.as_user('00000000-0000-0000-0000-0000000000c2');
 select tests.ok(tests.total(public.get_leaderboard(), 'username_02') = 770, 'unfreezing publishes everything at once');
+
+-- ---------------------------------------------------------------------
+-- Phase 2: admin basics
+-- ---------------------------------------------------------------------
+select tests.as_user('00000000-0000-0000-0000-0000000000c1');
+select tests.ok((select count(*) from public.activity_log) = 0, 'student cannot read the activity log');
+select tests.refused($$select public.admin_overview()$$, 'student cannot load the admin overview');
+select tests.refused($$select public.next_person_code('COA', 'A', 'B')$$, 'student cannot generate IDs');
+select tests.refused($$insert into public.quick_links (event_id, label, page) values (public.current_event(), 'x', 'learn')$$, 'student cannot add quick links');
+select tests.refused($$select public.admin_set_course_override('30000000-0000-0000-0000-00000000000a', true)$$, 'student cannot override grade items');
+
+select tests.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into public.quick_links (event_id, label, page, audience) values (public.current_event(), 'Learn', 'learn', 'both');
+select tests.ok(exists (select 1 from public.activity_log where action = 'Entered points · Event 1 · Students'), 'entering points is logged');
+select tests.ok(public.next_person_code('COA', 'Instructor', 'A') = 'COA27IA02', 'instructor IDs: code + year + initials + next number');
+select tests.ok(public.next_person_code('ADM', 'Om', 'Loke') = 'ADM27OL01', 'admin IDs use the prefix');
+select tests.refused($$delete from public.courses where id = '30000000-0000-0000-0000-00000000000a'$$, 'a course with students cannot be deleted');
+select tests.ok((public.admin_overview() ->> 'students')::int = 3 and (public.admin_overview() ->> 'courses')::int = 2, 'overview counts students and courses');
+select tests.ok(jsonb_array_length(public.admin_overview() -> 'activity') > 0, 'overview shows recent activity');
+update public.settings set courses_that_count = 2;
+select tests.ok(tests.total(public.get_leaderboard(), 'username_01') = 425 + 318.75, 'courses that count is a setting');
+update public.settings set courses_that_count = 3, sessions_per_course = 3;
+select tests.ok((select count(*) from public.sessions where course_id = '30000000-0000-0000-0000-00000000000b') = 3, 'sessions per course follows the setting');
+select tests.ok((select max_points from public.grade_items where kind = 'attendance' and course_id is null) = 90, 'attendance maximum follows sessions');
+select public.admin_set_course_override('30000000-0000-0000-0000-00000000000b', true);
+select tests.ok((select count(*) from public.grade_items where course_id = '30000000-0000-0000-0000-00000000000b') = 4, 'override starts from a copy of the shared items');
+select public.admin_set_course_override('30000000-0000-0000-0000-00000000000b', false);
+select tests.ok((select count(*) from public.grade_items where course_id = '30000000-0000-0000-0000-00000000000b') = 0, 'override can be turned off before any scores');
+update public.grade_items set max_points = 250 where name = 'Midpoint' and course_id is null;
+select tests.ok((select count(*) from public.admin_scores_over_max()) = 1, 'scores above a lowered maximum are listed');
+
+select tests.as_user('00000000-0000-0000-0000-0000000000c1');
+select tests.ok((select count(*) from public.quick_links) = 1, 'signed-in people read quick links');
+select tests.ok((select count(*) from public.admin_scores_over_max()) = 0, 'students get nothing from the over-maximum list');
 
 select tests.as_postgres();
 rollback;
