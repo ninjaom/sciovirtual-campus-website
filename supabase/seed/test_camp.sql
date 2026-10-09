@@ -50,12 +50,18 @@ from public.events e,
           ('Attendance', 'attendance', 270, 30, 3), ('Bonus', 'manual', 90, null, 4)) as x(name, kind, max, pps, sort)
 where e.is_current;
 
+-- Sessions are made once for all the new courses (below) rather than one
+-- course at a time by the automatic rule, which tripped over itself on the
+-- test project's Postgres 17 when 25 courses were added in one go.
+alter table public.courses disable trigger courses_sessions;
 insert into public.courses (event_id, short_code, name, time_slot, days, zoom_join_url, sort)
 select e.id, 'CO' || chr(64 + i), 'Course ' || chr(64 + i),
        (array['12–1 PM ET', '1–2 PM ET', '2–3 PM ET', '4–5 PM ET', '6–7 PM ET'])[1 + (i - 1) % 5],
        'Mon, Wed, Fri', 'https://us02web.zoom.us/j/00000000' || lpad(i::text, 2, '0'), i
 from public.events e, generate_series(1, 25) i
 where e.is_current;
+alter table public.courses enable trigger courses_sessions;
+select public.sync_sessions(null);
 
 insert into public.course_zoom_hosts (course_id, host_email, host_password)
 select c.id, 'host' || (c.sort % 5 + 1) || '@example.com', 'test-password-' || (c.sort % 5 + 1)
