@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/auth'
 import { must, useLoad } from '../../lib/useLoad'
 import { campDayLabel, useCurrentEvent } from '../../lib/useEvent'
-import { classDates, sessionState, when } from '../../lib/camp'
+import { classDates, sessionState, slotStart, when } from '../../lib/camp'
 import { loadPeople, type PersonCard } from '../../lib/people'
 import { Banner, ButtonA, ButtonLink, Card, EmptyState, Skeleton } from '../../components/ui'
 import { QuickLinkRow, UpdateCard, type QuickLink, type Update } from '../instructor/InstructorHome'
@@ -126,7 +126,7 @@ export function StudentHome() {
       return i === -1 ? null : { course: c, session: i + 1 }
     })
     .filter((x): x is { course: MyCourse; session: number } => !!x)
-    .sort((a, b) => (a.course.time_slot ?? '').localeCompare(b.course.time_slot ?? ''))
+    .sort((a, b) => slotStart(a.course.time_slot) - slotStart(b.course.time_slot))
 
   const st = data?.standing
   const showStanding = !isAdmin && st && st.state !== 'hidden' && st.rank != null

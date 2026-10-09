@@ -191,7 +191,7 @@ function PhotoDialog({ origin, oldPath, onClose, onSaved }: { origin: HTMLElemen
     setErr(null)
     if (!f) return
     if (!/^image\/(jpeg|png|webp|gif)$/.test(f.type)) return setErr('Use a JPG, PNG, WebP or GIF image')
-    if (f.size > 5 * 1024 * 1024) return setErr('Photos can be up to 5 MB')
+    if (f.size > 15 * 1024 * 1024) return setErr('Photos can be up to 15 MB')
     setFile(f)
     setPreview(URL.createObjectURL(f))
   }

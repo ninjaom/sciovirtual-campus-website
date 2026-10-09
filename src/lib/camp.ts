@@ -53,3 +53,19 @@ export const oneDecimal = (n: number | null | undefined) => (n == null ? '—' :
 
 /** Trims trailing zeros: 85.50 -> "85.5". */
 export const num = (n: number | string | null | undefined) => (n == null || n === '' ? '' : String(Number(n)))
+
+/**
+ * Minutes after midnight that a time slot like "12–1 PM ET", "9:30–10:30 AM"
+ * or "11 AM–12 PM" starts, for putting classes in order. Unreadable slots
+ * go last.
+ */
+export function slotStart(slot: string | null | undefined): number {
+  const m = (slot ?? '').match(/(\d{1,2})(?::(\d\d))?\s*(AM|PM)?\s*[–—-]\s*(\d{1,2})(?::\d\d)?\s*(AM|PM)/i)
+  if (!m) return 24 * 60
+  const start = +m[1]
+  const end = +m[4]
+  let pm = (m[3] ?? m[5]).toUpperCase() === 'PM'
+  // "11–12 PM" starts at 11 AM.
+  if (!m[3] && pm && end === 12 && start < 12) pm = false
+  return (start % 12 + (pm ? 12 : 0)) * 60 + (m[2] ? +m[2] : 0)
+}

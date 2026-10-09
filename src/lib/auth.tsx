@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { avatarLink } from './avatars'
@@ -58,15 +58,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
 
+  // Whose profile is loaded, so routine session events don't reload it.
+  const loadedFor = useRef<string | null>(null)
+
   const load = useCallback(async (s: Session | null) => {
     setSession(s)
+    loadedFor.current = s?.user.id ?? null
     setProfile(s ? await loadProfile(s.user.id) : null)
     setLoading(false)
   }, [])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => load(data.session))
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    // Supabase reports the starting session itself (INITIAL_SESSION), so the
+    // profile is loaded once per page load, not twice.
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      // A refreshed token or the same person signing in again (e.g. when the
+      // tab regains focus) only needs the new session, not a new profile.
+      if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && s && s.user.id === loadedFor.current) {
+        setSession(s)
+        return
+      }
       // Defer so Supabase finishes its own work before we query.
       setTimeout(() => load(s), 0)
     })
