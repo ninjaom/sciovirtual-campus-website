@@ -225,6 +225,14 @@ select a.id, a.author_id, 'Instructor reply', a.created_at + interval '2 hours'
 from public.announcements a join public.courses c on c.id = a.course_id and c.event_id = (select id from public.events where is_current)
 where a.created_at < timestamptz '2027-07-10';
 
+-- A couple of student comments on each course's first post
+insert into public.announcement_comments (announcement_id, author_id, body, created_at)
+select a.id, en.person_id, 'Student comment', a.created_at + interval '1 hour'
+from public.announcements a
+join public.courses c on c.id = a.course_id and c.event_id = (select id from public.events where is_current)
+join lateral (select e.person_id from public.enrollments e where e.course_id = c.id order by e.person_id limit 2) en on true
+where a.created_at < timestamptz '2027-07-10';
+
 insert into public.feedback_results (course_id, kind, questions, comments, responses, camp_responses, class_rank, imported_at)
 select c.id, 'midpoint',
   jsonb_build_array(

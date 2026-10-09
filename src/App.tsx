@@ -25,21 +25,23 @@ import { Attendance } from './pages/instructor/Attendance'
 import { Feedback } from './pages/instructor/Feedback'
 import { Announcements } from './pages/instructor/Announcements'
 import { Account } from './pages/shared/Account'
-import { StaffMerchandise } from './pages/shared/Merchandise'
+import { StaffMerchandise, StudentMerchandise } from './pages/shared/Merchandise'
+import { StudentHome } from './pages/student/StudentHome'
+import { MyCourses, MyCoursesIndex } from './pages/student/MyCourses'
 
 // The styleguide is for checking components on the test site only.
 const showStyleguide = window.location.hostname !== 'campus.sciovirtual.org'
 
 const BUILT = ['/admin', '/admin/accounts', '/admin/courses', '/admin/grade-items', '/admin/home-content']
 
-/** Home: instructors get Instructor Home; the student Home comes in Phase 4. */
+/** Home: Instructor Home for instructors; students and admins share Student Home (admins get their own cards). */
 function HomeRoute() {
   const { profile } = useAuth()
-  return profile?.role === 'instructor' ? <InstructorHome /> : <Placeholder title="Home" />
+  return profile?.role === 'instructor' ? <InstructorHome /> : <StudentHome />
 }
 function MerchRoute() {
   const { profile } = useAuth()
-  return profile?.role === 'student' ? <Placeholder title="Merchandise" /> : <StaffMerchandise />
+  return profile?.role === 'student' ? <StudentMerchandise /> : <StaffMerchandise />
 }
 
 export default function App() {
@@ -58,7 +60,8 @@ export default function App() {
       {/* Signed in */}
       <Route element={<RequireAuth><AppShell /></RequireAuth>}>
         <Route path="/home" element={<HomeRoute />} />
-        <Route path="/courses" element={<RequireAuth roles={['student']}><Placeholder title="My Courses" /></RequireAuth>} />
+        <Route path="/courses" element={<RequireAuth roles={['student']}><MyCoursesIndex /></RequireAuth>} />
+        <Route path="/courses/:code" element={<RequireAuth roles={['student']}><MyCourses /></RequireAuth>} />
         <Route path="/course/:code" element={<RequireAuth roles={['instructor', 'admin']}><CourseLayout /></RequireAuth>}>
           <Route index element={<Dashboard />} />
           <Route path="scores" element={<Scores />} />

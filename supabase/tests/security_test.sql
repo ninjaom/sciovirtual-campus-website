@@ -330,6 +330,24 @@ select tests.ok((select count(*) from storage.objects where bucket_id = 'course-
 select tests.as_postgres();
 
 -- ---------------------------------------------------------------------
+-- Phase 4: student pages
+-- ---------------------------------------------------------------------
+select tests.as_user('00000000-0000-0000-0000-0000000000c1');
+insert into public.announcement_comments (id, announcement_id, author_id, body)
+  values ('90000000-0000-0000-0000-000000000001', '80000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-0000000000c1', 'Mine');
+delete from public.announcement_comments where id = '90000000-0000-0000-0000-000000000001';
+select tests.ok((select count(*) from public.announcement_comments where id = '90000000-0000-0000-0000-000000000001') = 1, 'students cannot delete their own comments');
+update public.announcement_comments set body = 'edited' where id = '90000000-0000-0000-0000-000000000001';
+select tests.ok((select body from public.announcement_comments where id = '90000000-0000-0000-0000-000000000001') = 'Mine', 'comments cannot be edited');
+select tests.ok((select count(*) from public.grades where course_id = '30000000-0000-0000-0000-00000000000a' and person_id <> '20000000-0000-0000-0000-0000000000c1') = 0, 'student sees only their own class points');
+select tests.as_user('00000000-0000-0000-0000-0000000000c3');
+select tests.refused($$insert into public.announcement_comments (announcement_id, author_id, body) values ('80000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-0000000000c3', 'x')$$, 'students cannot comment in another course');
+select tests.as_user('00000000-0000-0000-0000-0000000000b1');
+delete from public.announcement_comments where id = '90000000-0000-0000-0000-000000000001';
+select tests.ok((select count(*) from public.announcement_comments where id = '90000000-0000-0000-0000-000000000001') = 0, 'course instructors can remove a student''s comment');
+select tests.as_postgres();
+
+-- ---------------------------------------------------------------------
 -- Phase 2 follow-ups
 -- ---------------------------------------------------------------------
 -- Leaderboards leave out students who haven't signed up (S4), but their

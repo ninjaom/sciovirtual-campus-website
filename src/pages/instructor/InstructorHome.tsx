@@ -5,11 +5,11 @@ import { must, useLoad } from '../../lib/useLoad'
 import { campDayLabel, useCurrentEvent } from '../../lib/useEvent'
 import { classDates, currentSession, dayDate, sessionState, when } from '../../lib/camp'
 import { loadPeople } from '../../lib/people'
-import { Banner, ButtonA, ButtonLink, Card, Skeleton } from '../../components/ui'
+import { Banner, ButtonA, ButtonLink, Card, EmptyState, Skeleton } from '../../components/ui'
 import { Ava, FileIcon, LinkIcon, type Attachment } from './bits'
 import './instructor.css'
 
-interface Update {
+export interface Update {
   id: string
   author_id: string | null
   title: string
@@ -18,7 +18,7 @@ interface Update {
   pinned: boolean
   created_at: string
 }
-interface QuickLink {
+export interface QuickLink {
   id: string
   label: string
   page: string | null
@@ -143,7 +143,7 @@ export function InstructorHome() {
           <h2>Camp Updates</h2>
           {!data && <Skeleton height={160} />}
           {data?.updates.map((u) => <UpdateCard key={u.id} u={u} author={u.author_id ? data.authors.get(u.author_id) : null} />)}
-          {data && data.updates.length === 0 && <Card><p className="inote" style={{ fontSize: 14 }}>No camp updates yet</p></Card>}
+          {data && data.updates.length === 0 && <EmptyState title="No camp updates yet" body="Check back soon" />}
         </div>
 
         <aside className="ihome__side">

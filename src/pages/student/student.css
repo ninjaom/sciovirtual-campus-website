@@ -1,0 +1,299 @@
+/* Student pages: Home sidebar cards, course feed, My Courses, Class Points.
+   Matches the StudentHome / StudentCourse / Merchandise mockup boards. */
+
+.noclass {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+  border-radius: var(--r-row);
+  padding: 14px 16px;
+  text-align: center;
+}
+.todayrow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--bg);
+  border-radius: var(--r-row);
+  padding: 12px 14px;
+}
+.todayrow__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.todayrow__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--blue);
+}
+
+/* Your Standing (blue card) */
+.standing {
+  background: var(--blue);
+  border-radius: var(--r-card);
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.standing h2 {
+  color: #fff;
+}
+.standing__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.standing__tile,
+.standing__team {
+  background: #fff;
+  border-radius: var(--r-row);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.standing__team {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.standing__teamtext {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.standing__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.standing__value {
+  font-size: 26px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.standing__sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.standing__teamname {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.standing__teamrank {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--blue-ink);
+}
+
+/* Recent Course Announcements (Home) */
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+.feed h2 {
+  margin-bottom: 4px;
+}
+.feedrow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface);
+  border-radius: var(--r-card);
+  padding: 18px 22px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 120ms var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.feedrow:hover {
+  color: inherit;
+  box-shadow: 0 6px 18px rgba(32, 31, 86, 0.08);
+}
+.feedrow:active {
+  transform: scale(0.99);
+}
+.feedrow__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+.feedrow__course {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue-ink);
+  background: var(--lavender);
+  border-radius: var(--r-pill);
+  padding: 3px 10px;
+}
+.feedrow__meta {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.feedrow__text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-body);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-line;
+}
+
+/* My Courses */
+.coursepills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.coursepill {
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--blue-ink);
+  background: var(--surface);
+  border: 2px solid var(--lavender);
+  border-radius: var(--r-pill);
+  padding: 9px 20px;
+  transition: background var(--dur-fast) ease-out, color var(--dur-fast) ease-out, border-color var(--dur-fast) ease-out;
+}
+.coursepill:hover {
+  color: var(--blue-ink);
+  background: var(--lavender-soft);
+}
+.coursepill.is-active {
+  color: #fff;
+  background: var(--blue);
+  border-color: var(--blue);
+}
+.chead__staff {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.chead__btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chead__btns .btn {
+  font-size: 15px;
+  padding-left: 22px;
+  padding-right: 22px;
+}
+.points {
+  gap: 16px;
+}
+.points__total {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.points__big {
+  font-size: 40px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.points__of {
+  font-size: 15px;
+  color: var(--text-muted);
+}
+.pbar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pbar__top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+.pbar__name {
+  font-weight: 600;
+  color: var(--text);
+}
+.pbar__val {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.pbar__track {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--lavender-soft);
+  overflow: hidden;
+}
+.pbar__fill {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--blue);
+  transform-origin: left;
+  animation: pbarIn 600ms var(--ease-out) both;
+}
+.pbar__fill--att {
+  background: var(--teal);
+}
+.pbar__fill--bonus {
+  background: var(--periwinkle);
+}
+@keyframes pbarIn {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* Student Merchandise */
+.mypoints {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: var(--r-card);
+  padding: 14px 20px;
+}
+.mypoints__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.mypoints__value {
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.merchitem__cost {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--blue-ink);
+  padding: 0 4px;
+}
+.merchitem__status {
+  margin: 0 4px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--r-row);
+  padding: 8px 12px;
+  text-align: center;
+  background: var(--bg);
+  color: var(--text-muted);
+}
+.merchitem__status.is-ok {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}

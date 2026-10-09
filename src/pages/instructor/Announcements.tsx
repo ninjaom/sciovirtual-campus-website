@@ -66,22 +66,19 @@ export function AttachmentList({ items, urls }: { items: Attachment[]; urls: Map
   )
 }
 
-export function Announcements() {
-  const { course } = useCourse()
-  const { profile } = useAuth()
-  const toast = useToast()
-  const me = profile!
-
-  const { data, reload, setData } = useLoad(async () => {
+/** A course's posts with comments, the people in them and signed file links. */
+export function useCoursePosts(courseId: string, meId: string) {
+  return useLoad(async () => {
+    if (!courseId) return null
     const posts = must(
       await supabase
         .from('announcements')
         .select('id, author_id, body, attachments, created_at, announcement_comments(id, author_id, body, created_at)')
-        .eq('course_id', course.id)
+        .eq('course_id', courseId)
         .order('created_at', { ascending: false }),
     ) as Post[]
     for (const p of posts) p.announcement_comments.sort((a, b) => a.created_at.localeCompare(b.created_at))
-    const people = await loadPeople([me.id, ...posts.flatMap((p) => [p.author_id, ...p.announcement_comments.map((c) => c.author_id)])])
+    const people = await loadPeople([meId, ...posts.flatMap((p) => [p.author_id, ...p.announcement_comments.map((c) => c.author_id)])])
     const paths = posts.flatMap((p) => p.attachments.filter((a) => a.type === 'file').map((a) => (a as { path: string }).path))
     const urls = new Map<string, string>()
     if (paths.length) {
@@ -89,7 +86,16 @@ export function Announcements() {
       for (const s of signed ?? []) if (s.path && s.signedUrl) urls.set(s.path, s.signedUrl)
     }
     return { posts, people, urls }
-  }, [course.id])
+  }, [courseId])
+}
+
+export function Announcements() {
+  const { course } = useCourse()
+  const { profile } = useAuth()
+  const toast = useToast()
+  const me = profile!
+
+  const { data, reload, setData } = useCoursePosts(course.id, me.id)
 
   // ---------- New post ----------
   const [draft, setDraft] = useState('')
@@ -289,12 +295,14 @@ function AddLink({ origin, onClose, onAdd }: { origin: HTMLElement | null; onClo
   )
 }
 
-function PostCard({
+export function PostCard({
   post,
   people,
   urls,
   me,
   canManage,
+  moderate = true,
+  defaultOpen = false,
   editing,
   onEdit,
   onEditChange,
@@ -308,6 +316,10 @@ function PostCard({
   urls: Map<string, string>
   me: string
   canManage: boolean
+  /** Can remove comments (course instructors and admins). */
+  moderate?: boolean
+  /** Show the comment thread open at first. */
+  defaultOpen?: boolean
   editing: string | null
   onEdit: () => void
   onEditChange: (b: string) => void
@@ -317,7 +329,7 @@ function PostCard({
   onChanged: () => void
 }) {
   const toast = useToast()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   const [comment, setComment] = useState('')
   const author = post.author_id ? people.get(post.author_id) : undefined
   const n = post.announcement_comments.length
@@ -384,9 +396,11 @@ function PostCard({
                     </span>
                     <span className="cmt__text">{c.body}</span>
                   </div>
-                  <button type="button" className="cmt__x" aria-label="Remove comment" onClick={() => removeComment(c.id)}>
-                    <XGlyph />
-                  </button>
+                  {moderate && (
+                    <button type="button" className="cmt__x" aria-label="Remove comment" onClick={() => removeComment(c.id)}>
+                      <XGlyph />
+                    </button>
+                  )}
                 </div>
               )
             })}
