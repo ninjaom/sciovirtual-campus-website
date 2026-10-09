@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { avatarLinks } from './avatars'
 import { initials } from './format'
 import type { Role } from './types'
 
@@ -25,12 +26,7 @@ export async function loadPeople(ids: (string | null | undefined)[]): Promise<Ma
     const { data } = await supabase.from('people_directory').select('id, first_name, last_name, role, avatar_path').in('id', want.slice(i, i + 150))
     rows.push(...((data ?? []) as typeof rows))
   }
-  const paths = rows.map((r) => r.avatar_path).filter((p): p is string => !!p)
-  const urls = new Map<string, string>()
-  if (paths.length) {
-    const { data } = await supabase.storage.from('avatars').createSignedUrls(paths, 3600)
-    for (const s of data ?? []) if (s.path && s.signedUrl) urls.set(s.path, s.signedUrl)
-  }
+  const urls = await avatarLinks(rows.map((r) => r.avatar_path))
   for (const r of rows)
     out.set(r.id, {
       id: r.id,

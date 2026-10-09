@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
+import { forgetAvatar, photoExt, shrinkPhoto } from '../../lib/avatars'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/auth'
 import { must, useLoad } from '../../lib/useLoad'
@@ -45,7 +46,10 @@ export function Account() {
     const old = data?.me.avatar_path
     const res = await supabase.from('people').update({ avatar_path: null }).eq('id', p.id)
     if (res.error) return toast('Something went wrong. Please try again.', 'error')
-    if (old) await supabase.storage.from('avatars').remove([old])
+    if (old) {
+      await supabase.storage.from('avatars').remove([old])
+      forgetAvatar(old)
+    }
     await refresh()
     reload()
   }
@@ -199,9 +203,15 @@ function PhotoDialog({ origin, oldPath, onClose, onSaved }: { origin: HTMLElemen
   async function save() {
     if (!file || !session) return
     setBusy(true)
-    const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase()
-    const path = `${session.user.id}/avatar-${Date.now()}.${ext}`
-    const up = await supabase.storage.from('avatars').upload(path, file, { contentType: file.type })
+    let small: Blob
+    try {
+      small = await shrinkPhoto(file)
+    } catch {
+      setBusy(false)
+      return setErr('Couldn’t upload that photo. Please try again.')
+    }
+    const path = `${session.user.id}/avatar-${Date.now()}.${photoExt(small)}`
+    const up = await supabase.storage.from('avatars').upload(path, small, { contentType: small.type, cacheControl: '31536000' })
     if (up.error) {
       setBusy(false)
       return setErr('Couldn’t upload that photo. Please try again.')
@@ -211,7 +221,10 @@ function PhotoDialog({ origin, oldPath, onClose, onSaved }: { origin: HTMLElemen
       setBusy(false)
       return setErr('Something went wrong. Please try again.')
     }
-    if (oldPath) await supabase.storage.from('avatars').remove([oldPath])
+    if (oldPath) {
+      await supabase.storage.from('avatars').remove([oldPath])
+      forgetAvatar(oldPath)
+    }
     onSaved()
   }
 

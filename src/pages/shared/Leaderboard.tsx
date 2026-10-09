@@ -4,6 +4,7 @@ import { useAuth } from '../../lib/auth'
 import { must, useLoad } from '../../lib/useLoad'
 import { when } from '../../lib/camp'
 import { Skeleton } from '../../components/ui'
+import { avatarLinks } from '../../lib/avatars'
 import './leaderboard.css'
 
 interface Slot {
@@ -59,6 +60,66 @@ interface Board {
 }
 type View = 'ind' | 'team' | 'crs'
 
+/*
+ * The server sends a slim board: event points as a list in column order,
+ * course slots in order without their position, and empty fields left out.
+ * Turn it back into the shape the page uses.
+ */
+type PackedSlot = { name?: string; points: number; extrapolated?: boolean }
+type PackedInd = Omit<IndRow, 'courses' | 'challenges' | 'is_me' | 'avatar' | 'team'> & {
+  avatar?: string
+  team?: string
+  courses: PackedSlot[]
+  points: (number | null)[]
+}
+type PackedTeam = Omit<TeamRow, 'challenges' | 'is_mine'> & { points: (number | null)[] }
+type Packed = Omit<Board, 'individual' | 'me_below_cutoff' | 'teams'> & {
+  individual?: PackedInd[]
+  me_below_cutoff?: PackedInd | null
+  teams?: PackedTeam[]
+}
+
+function byColumn(ids: string[], pts: (number | null)[] | undefined) {
+  const out: Record<string, number> = {}
+  ids.forEach((id, i) => {
+    const v = pts?.[i]
+    if (v != null) out[id] = v
+  })
+  return out
+}
+function unpackInd(r: PackedInd, ids: string[], mine: string | null | undefined): IndRow {
+  return {
+    username: r.username,
+    avatar: r.avatar ?? null,
+    team: r.team ?? null,
+    total: r.total,
+    rank: r.rank,
+    is_me: !!mine && r.username === mine,
+    courses: r.courses.map((c, i) => ({ ord: i + 1, name: c.name ?? null, points: c.points, extrapolated: !!c.extrapolated })),
+    challenges: byColumn(ids, r.points),
+  }
+}
+// The board is the same for every student; each browser marks its own row
+// (and team) by the signed-in username.
+function unpack(p: Packed | null, mine: string | null | undefined): Board | null {
+  if (!p) return null
+  if (!p.individual) return p as unknown as Board
+  const ids = (p.challenges ?? []).map((c) => c.id)
+  const individual = p.individual.map((r) => unpackInd(r, ids, mine))
+  const below = p.me_below_cutoff ? { ...unpackInd(p.me_below_cutoff, ids, mine), is_me: true } : null
+  const myTeam = (individual.find((r) => r.is_me) ?? below)?.team ?? null
+  return {
+    ...p,
+    individual,
+    me_below_cutoff: below,
+    teams: (p.teams ?? []).map((t) => ({ ...t, is_mine: !!myTeam && t.name === myTeam, challenges: byColumn(ids, t.points) })),
+    courses: (p.courses ?? []).map((c) => ({
+      ...c,
+      rows: c.rows.map((r) => ({ ...r, avatar: r.avatar ?? null, is_me: !!mine && r.username === mine })),
+    })),
+  }
+}
+
 const fmt = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toLocaleString('en-US'))
 const MEDALS = ['gold', 'silver', 'bronze']
 
@@ -76,7 +137,7 @@ function Face({ url, size = 34 }: { url: string | null | undefined; size?: numbe
   return (
     <span className="lbface" style={{ width: size, height: size }} aria-hidden="true">
       {url ? (
-        <img src={url} alt="" />
+        <img src={url} alt="" loading="lazy" decoding="async" />
       ) : (
         <svg width={size * 0.53} height={size * 0.53} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="8" r="4" />
@@ -101,21 +162,16 @@ export function Leaderboard() {
   const scroller = useRef<HTMLDivElement>(null)
 
   const { data, error } = useLoad(async () => {
-    const board = must(await supabase.rpc('get_leaderboard')) as Board | null
-    // Photos are private files; sign the ones on screen.
-    const paths = new Set<string>()
+    const board = unpack(must(await supabase.rpc('get_leaderboard')) as Packed | null, profile?.username)
+    // Photos are private files; sign the ones on the board (links are reused).
+    const paths: (string | null)[] = []
     if (board?.individual) {
-      for (const r of [...board.individual, ...(board.me_below_cutoff ? [board.me_below_cutoff] : [])]) if (r.avatar) paths.add(r.avatar)
-      for (const c of board.courses) for (const r of c.rows) if (r.avatar) paths.add(r.avatar)
+      for (const r of [...board.individual, ...(board.me_below_cutoff ? [board.me_below_cutoff] : [])]) paths.push(r.avatar)
+      for (const c of board.courses) for (const r of c.rows) paths.push(r.avatar)
     }
-    const urls = new Map<string, string>()
-    const list = [...paths]
-    for (let i = 0; i < list.length; i += 200) {
-      const { data: signed } = await supabase.storage.from('avatars').createSignedUrls(list.slice(i, i + 200), 3600)
-      for (const s of signed ?? []) if (s.path && s.signedUrl) urls.set(s.path, s.signedUrl)
-    }
+    const urls = await avatarLinks(paths)
     return { board, urls }
-  }, [])
+  }, [profile?.username])
 
   const b = data?.board ?? null
   const urls = data?.urls ?? new Map<string, string>()

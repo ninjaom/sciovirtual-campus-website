@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
+import { avatarLink } from './avatars'
 import type { CourseRef, Profile, Role } from './types'
 
 interface AuthState {
@@ -38,11 +39,7 @@ async function loadProfile(userId: string): Promise<Profile | null> {
   }
 
   // Photos live in a private bucket; signed links expire after an hour.
-  let avatarUrl: string | null = null
-  if (person.avatar_path) {
-    const { data } = await supabase.storage.from('avatars').createSignedUrl(person.avatar_path, 3600)
-    avatarUrl = data?.signedUrl ?? null
-  }
+  const avatarUrl = await avatarLink(person.avatar_path)
 
   return {
     id: person.id,

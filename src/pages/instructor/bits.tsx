@@ -5,7 +5,7 @@ export function Ava({ person, size = 42, fallback = '?' }: { person?: PersonCard
   const tone = person?.role === 'admin' ? ' ava--director' : person?.role === 'student' ? ' ava--student' : ''
   return (
     <span className={'ava' + tone} style={{ width: size, height: size, fontSize: size >= 40 ? 14 : 13 }} aria-hidden="true">
-      {person?.avatarUrl ? <img src={person.avatarUrl} alt="" /> : person?.initials ?? fallback}
+      {person?.avatarUrl ? <img src={person.avatarUrl} alt="" loading="lazy" decoding="async" /> : person?.initials ?? fallback}
     </span>
   )
 }

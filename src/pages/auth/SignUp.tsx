@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
+import { photoExt, shrinkPhoto } from '../../lib/avatars'
 import { supabase } from '../../lib/supabase'
 import { postApi } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
@@ -87,11 +88,15 @@ export function SignUp() {
     }
 
     // Optional photo, uploaded once signed in.
+    // Shrunk to a small square first; if that fails, the photo can be added
+    // later from Account.
     if (photo && showNewAccountBits) {
-      const ext = (photo.name.split('.').pop() ?? 'jpg').toLowerCase()
-      const path = `${data.user.id}/avatar-${Date.now()}.${ext}`
-      const up = await supabase.storage.from('avatars').upload(path, photo, { upsert: true, contentType: photo.type })
-      if (!up.error) await supabase.from('people').update({ avatar_path: path }).eq('auth_user_id', data.user.id)
+      const small = await shrinkPhoto(photo).catch(() => null)
+      if (small) {
+        const path = `${data.user.id}/avatar-${Date.now()}.${photoExt(small)}`
+        const up = await supabase.storage.from('avatars').upload(path, small, { upsert: true, contentType: small.type, cacheControl: '31536000' })
+        if (!up.error) await supabase.from('people').update({ avatar_path: path }).eq('auth_user_id', data.user.id)
+      }
     }
     await refresh()
     navigate('/home', { replace: true })

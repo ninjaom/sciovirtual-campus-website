@@ -2,6 +2,9 @@
 -- back, so it leaves nothing behind. Any failed check stops the run.
 --   psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/security_test.sql
 begin;
+-- The leaderboard's saved copy normally lasts 30 seconds; here every check
+-- should see its own changes straight away.
+set local campus.leaderboard_cache_seconds = '0';
 
 create schema tests;
 
@@ -191,7 +194,7 @@ select tests.ok(jsonb_array_length(public.get_leaderboard() -> 'individual') = 2
 -- S1: one course 340 -> 340, 255, 170 = 765 (rank 1); S2: 250 + 230 + avg 240 = 720 (rank 2); S3: 100, 75, 50 + 50 = 275 (rank 3)
 select tests.ok((public.get_leaderboard() -> 'individual' -> 0 ->> 'total')::numeric = 765, 'one-course extrapolation: x0.75 and x0.50');
 select tests.ok((public.get_leaderboard() -> 'individual' -> 1 ->> 'total')::numeric = 720, 'two-course extrapolation: average of the two');
-select tests.ok((public.get_leaderboard() -> 'individual' -> 0 ->> 'is_me')::boolean, 'student is marked on their own row');
+select tests.ok(public.get_leaderboard() -> 'individual' -> 0 ->> 'username' = (select username from public.people where id = public.me()), 'student sees their own row (marked in the browser by username)');
 select tests.ok((public.get_my_standing() ->> 'rank')::int = 1 and (public.get_my_standing() ->> 'of')::int = 3, 'home standing counts the whole camp');
 
 -- S3 is below the cutoff of 2 but still sees their own row
@@ -371,6 +374,44 @@ update public.teams set takeover_override = 5;
 select tests.as_postgres();
 select tests.ok((select count(*) from public.teams where takeover_override is not null) = 0, 'students cannot override takeovers');
 update public.settings set course_top_n = 10;
+
+-- ---------------------------------------------------------------------
+-- First stress test: saved leaderboard copy and slimmer leaderboard
+-- ---------------------------------------------------------------------
+select tests.as_user('00000000-0000-0000-0000-0000000000c1');
+select tests.refused($$select * from public.leaderboard_cache$$, 'student cannot read the saved leaderboard copy');
+select tests.refused($$select public.cached_leaderboard(public.current_event())$$, 'student cannot call the saved-copy function');
+select tests.refused($$select * from public.leaderboard_views$$, 'student cannot read the saved student view directly');
+select tests.refused($$select public.lb_view(public.leaderboard_source(public.current_event()), public.current_event(), true)$$, 'student cannot build the admin view');
+select tests.ok(public.get_leaderboard()::text not like '%person_id%' and public.get_leaderboard()::text not like '%team_id%', 'leaderboards carry no internal IDs');
+select tests.ok((select bool_and(jsonb_array_length(r -> 'points') = (select count(*) from public.challenges where visible))
+                 from jsonb_array_elements(public.get_leaderboard() -> 'individual') r), 'each row has one points entry per shown event');
+select tests.ok(public.get_my_standing() ->> 'rank' is not null, 'Your Standing still works from the saved copy');
+select tests.as_user('00000000-0000-0000-0000-0000000000a1');
+select tests.refused($$select * from public.leaderboard_cache$$, 'admins also read the saved copy only through the leaderboard');
+-- With the normal 30 seconds, a change waits for the next refresh...
+set local campus.leaderboard_cache_seconds = '30';
+select public.get_leaderboard();
+select tests.as_postgres();
+update public.teams set takeover_override = 777 where name = 'Team A';
+select tests.as_user('00000000-0000-0000-0000-0000000000a1');
+select tests.ok((select (t ->> 'takeovers')::numeric from jsonb_array_elements(public.get_leaderboard() -> 'teams') t where t ->> 'name' = 'Team A') is distinct from 777,
+  'within 30 seconds the leaderboard reads the saved copy');
+-- ...but freezing saves the true current standings.
+select tests.as_postgres();
+update public.settings set leaderboard_state = 'frozen';
+select tests.as_user('00000000-0000-0000-0000-0000000000c1');
+select tests.ok((select (t ->> 'takeovers')::numeric from jsonb_array_elements(public.get_leaderboard() -> 'teams') t where t ->> 'name' = 'Team A') = 777,
+  'freezing saves the latest standings, not the saved copy');
+select tests.as_postgres();
+update public.settings set leaderboard_state = 'live';
+set local campus.leaderboard_cache_seconds = '0';
+select tests.as_user('00000000-0000-0000-0000-0000000000a1');
+select tests.ok((select (t ->> 'takeovers')::numeric from jsonb_array_elements(public.get_leaderboard() -> 'teams') t where t ->> 'name' = 'Team A') = 777,
+  'once the copy is old enough the change shows');
+select tests.as_postgres();
+update public.teams set takeover_override = null where name = 'Team A';
+delete from public.leaderboard_cache;
 
 -- ---------------------------------------------------------------------
 -- Phase 2 follow-ups
