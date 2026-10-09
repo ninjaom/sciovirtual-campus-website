@@ -1,7 +1,7 @@
 -- FAKE CAMP for the TEST project only. Never run on the real project.
 -- Paste into the test project's SQL Editor and run. Safe to run again.
 --
--- Builds a full fake ScioCamp 2027: 25 courses, 95 instructors, 500
+-- Builds a full fake ScioCamp 2027: 31 courses, 95 instructors, 500
 -- students, 12 teams, 9 sessions per course with check-ins for the first
 -- 4, Midpoint scores, live events and async challenges with points.
 --
@@ -52,13 +52,13 @@ where e.is_current;
 
 -- Sessions are made once for all the new courses (below) rather than one
 -- course at a time by the automatic rule, which tripped over itself on the
--- test project's Postgres 17 when 25 courses were added in one go.
+-- test project's Postgres 17 when many courses were added in one go.
 alter table public.courses disable trigger courses_sessions;
 insert into public.courses (event_id, short_code, name, time_slot, days, zoom_join_url, sort)
-select e.id, 'CO' || chr(64 + i), 'Course ' || chr(64 + i),
+select e.id, (case when i <= 26 then 'CO' || chr(64 + i) else 'CP' || chr(38 + i) end), 'Course ' || (case when i <= 26 then chr(64 + i) else 'A' || chr(38 + i) end),
        (array['12–1 PM ET', '1–2 PM ET', '2–3 PM ET', '4–5 PM ET', '6–7 PM ET'])[1 + (i - 1) % 5],
        'Mon, Wed, Fri', 'https://us02web.zoom.us/j/00000000' || lpad(i::text, 2, '0'), i
-from public.events e, generate_series(1, 25) i
+from public.events e, generate_series(1, 31) i
 where e.is_current;
 alter table public.courses enable trigger courses_sessions;
 select public.sync_sessions(null);
@@ -75,17 +75,18 @@ insert into public.people (person_code, role, first_name, last_name, email) valu
   ('ADM27DB01', 'admin', 'Director', 'B', 'director.b@example.com')
 on conflict (person_code) do nothing;
 
--- Instructors: 95 in all. Four per course for the first 20 courses, three
--- for the last 5. IDs: course code + 27 + I..L + course letter + 01.
+-- Instructors: 95 in all. Four per course for the first 2 courses, three
+-- for the other 29. IDs: course code + 27 + I..L + first letter of the
+-- course's letter(s) + 01 (courses 27-31 are CPA-CPE, "Course AA"-"Course AE").
 -- Fake instructors from earlier runs who never signed up are cleared first.
 delete from public.people
-where role = 'instructor' and auth_user_id is null and person_code::text ~ '^CO[A-Z]27[A-Z][A-Z]01$';
+where role = 'instructor' and auth_user_id is null and person_code::text ~ '^C[OP][A-Z]27[A-Z][A-Z]01$';
 insert into public.people (person_code, role, first_name, last_name, email)
-select 'CO' || chr(64 + i) || '27' || chr(72 + k) || chr(64 + i) || '01', 'instructor'::public.role, 'Instructor',
-       chr(64 + i) || case when k = 1 then '' else k::text end,
-       'instructor.' || lower(chr(64 + i)) || case when k = 1 then '' else k::text end || '@example.com'
-from generate_series(1, 25) i, generate_series(1, 4) k
-where k <= 3 or i <= 20
+select (case when i <= 26 then 'CO' || chr(64 + i) else 'CP' || chr(38 + i) end) || '27' || chr(72 + k) || left((case when i <= 26 then chr(64 + i) else 'A' || chr(38 + i) end), 1) || '01', 'instructor'::public.role, 'Instructor',
+       (case when i <= 26 then chr(64 + i) else 'A' || chr(38 + i) end) || case when k = 1 then '' else k::text end,
+       'instructor.' || lower((case when i <= 26 then chr(64 + i) else 'A' || chr(38 + i) end)) || case when k = 1 then '' else k::text end || '@example.com'
+from generate_series(1, 31) i, generate_series(1, 4) k
+where k <= 3 or i <= 2
 on conflict (person_code) do nothing;
 
 -- Students: 27 + two letters + 4 digits
@@ -104,7 +105,7 @@ select c.id, p.id
 from public.people p
 join public.courses c on c.short_code = left(p.person_code::text, 3)
 join public.events e on e.id = c.event_id and e.is_current
-where p.role = 'instructor' and p.person_code::text ~ '^CO[A-Y]27[I-L][A-Y]01$';
+where p.role = 'instructor' and p.person_code::text ~ '^C[OP][A-Z]27[I-L][A-Z]01$';
 
 -- Each student takes 1 to 4 courses (spread evenly)
 insert into public.enrollments (course_id, person_id)
@@ -113,7 +114,7 @@ from (select p.id, row_number() over (order by p.person_code) as n
       from public.people p where p.role = 'student' and p.person_code::text ~ '^27[A-Z]{2}[0-9]{4}$') s
 cross join generate_series(0, 3) k
 join public.courses c on c.event_id = (select id from public.events where is_current)
-  and c.sort = 1 + ((s.n * 7 + k * 6) % 25)
+  and c.sort = 1 + ((s.n * 7 + k * 6) % 31)
 where k < 1 + (s.n % 4);
 
 -- ---------------------------------------------------------------------

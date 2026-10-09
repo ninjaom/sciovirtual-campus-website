@@ -81,6 +81,12 @@
   padding: 8px;
   box-shadow: var(--shadow-menu);
   transform-origin: top;
+  /* Long lists (every course, for admins) scroll inside the menu. */
+  max-height: calc(100vh - 96px);
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 .dd:hover .dd__menu,
 .dd:focus-within .dd__menu {
