@@ -14,6 +14,9 @@
   font-size: 14px;
   color: var(--text-muted);
 }
+.ahead__eyebrow.is-strong {
+  font-weight: 600;
+}
 .ahead h1 {
   font-size: 32px;
   color: var(--blue);

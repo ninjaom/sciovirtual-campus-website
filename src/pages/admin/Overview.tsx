@@ -49,7 +49,7 @@ export function Overview() {
 
   return (
     <>
-      <AdminHead eyebrow={eyebrow} title="Admin Overview">
+      <AdminHead eyebrow={eyebrow} title="Admin Overview" strong>
         <ButtonLink to="/admin/announcements">Post Announcement</ButtonLink>
         <ButtonLink to="/admin/leaderboard" variant="secondary">
           Enter Points

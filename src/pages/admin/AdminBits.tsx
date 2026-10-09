@@ -2,11 +2,11 @@ import type { ReactNode } from 'react'
 import './admin.css'
 
 /** Page title row: small grey line above the blue title, actions on the right. */
-export function AdminHead({ eyebrow, title, children }: { eyebrow?: ReactNode; title: ReactNode; children?: ReactNode }) {
+export function AdminHead({ eyebrow, title, children, strong }: { eyebrow?: ReactNode; title: ReactNode; children?: ReactNode; strong?: boolean }) {
   return (
     <div className="ahead">
       <div className="ahead__text">
-        {eyebrow && <span className="ahead__eyebrow">{eyebrow}</span>}
+        {eyebrow && <span className={'ahead__eyebrow' + (strong ? ' is-strong' : '')}>{eyebrow}</span>}
         <h1>{title}</h1>
       </div>
       {children && <div className="ahead__actions">{children}</div>}

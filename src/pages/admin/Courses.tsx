@@ -246,7 +246,7 @@ function CourseDetails({
       <TextField label="Zoom link" value={f.zoom_join_url} onChange={(e) => edit('zoom_join_url', e.target.value)} />
       <div className="fieldrow">
         <TextField label="Zoom host email" value={f.host_email} onChange={(e) => edit('host_email', e.target.value)} autoComplete="off" fieldStyle={{ flex: '1 1 180px' }} />
-        <div className="field" style={{ flex: '1 1 120px' }}>
+        <div className="field" style={{ flex: '1 1 150px' }}>
           <label htmlFor="c-hostpw" className="field__label">Zoom host password</label>
           <div className="pwrow">
             <input

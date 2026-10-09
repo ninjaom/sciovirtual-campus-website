@@ -342,6 +342,7 @@
 
 /* ---------- Tables ---------- */
 .tablewrap {
+  position: relative;
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: var(--r-row);

@@ -125,7 +125,7 @@ export function Accounts() {
         <Button variant="secondary" onClick={(e) => { setOrigin(e.currentTarget); setImporting(true) }}>
           Import CSV
         </Button>
-        <Button onClick={(e) => { setOrigin(e.currentTarget); tab === 'team' ? setTeamEdit('new') : setAdding(true) }}>
+        <Button onClick={(e) => { setOrigin(e.currentTarget); if (tab === 'team') setTeamEdit('new'); else setAdding(true) }}>
           {tab === 'team' ? '+ Add Team' : '+ Add Account'}
         </Button>
       </AdminHead>

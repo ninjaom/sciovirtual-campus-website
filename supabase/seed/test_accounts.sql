@@ -26,9 +26,7 @@ from public.events e,
   (values ('COA', 'Course A', '1–2 PM ET', 1), ('COB', 'Course B', '4–5 PM ET', 2), ('COC', 'Course C', '6–7 PM ET', 3)) as x(code, name, slot, sort)
 where e.is_current;
 
--- 9 sessions per course
-insert into public.sessions (course_id, number)
-select c.id, n from public.courses c join public.events e on e.id = c.event_id and e.is_current, generate_series(1, 9) n;
+-- (9 sessions per course are created automatically)
 
 -- People (setup codes are created automatically)
 insert into public.people (person_code, role, first_name, last_name, email) values
