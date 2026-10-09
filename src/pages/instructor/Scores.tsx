@@ -229,7 +229,10 @@ export function Scores() {
           </span>
         </div>
         <div className="gridnote">
-          <span>Note: Use arrow keys, Tab and Enter to move between cells; paste a block directly from Sheets.</span>
+          <span className="gridnote__text">
+            <span>Note: Use arrow keys, Tab and Enter to move between cells; paste a block directly from Sheets.</span>
+            <span>Disclaimer: Inputs take ~30 seconds to register, be cautious when there are multiple instructors editing simultaneously</span>
+          </span>
           <div className="attlegend">
             <span><span className="keybox keybox--bad" />Above the maximum, not saved</span>
             <span><span className="keybox keybox--calc" />Calculated from check-ins</span>
