@@ -301,6 +301,35 @@ select tests.ok((select count(*) from public.admin_scores_over_max()) = 0, 'stud
 
 
 -- ---------------------------------------------------------------------
+-- Phase 3: instructor pages
+-- ---------------------------------------------------------------------
+select tests.as_user('00000000-0000-0000-0000-0000000000b1');
+select tests.ok((public.course_ratings('30000000-0000-0000-0000-00000000000a') ->> 'rank')::int = 1
+  and (public.course_ratings('30000000-0000-0000-0000-00000000000a') ->> 'of')::int = 2
+  and (public.course_ratings('30000000-0000-0000-0000-00000000000a') -> 'sessions' -> 0 ->> 'average')::numeric = 8,
+  'instructor gets their class''s ratings, rank and session averages');
+select tests.ok(public.course_ratings('30000000-0000-0000-0000-00000000000a')::text not like '%comment%', 'class ratings carry no comments');
+select tests.refused($$select public.course_ratings('30000000-0000-0000-0000-00000000000b')$$, 'instructor cannot load another course''s ratings');
+insert into storage.objects (bucket_id, name) values ('course-files', '30000000-0000-0000-0000-00000000000a/x/slides.pdf');
+select tests.refused($$insert into storage.objects (bucket_id, name) values ('course-files', '30000000-0000-0000-0000-00000000000b/x/slides.pdf')$$, 'instructor cannot add files to another course');
+select tests.refused($$insert into storage.objects (bucket_id, name) values ('course-files', 'not-a-course/slides.pdf')$$, 'course files must sit in a course folder');
+insert into public.announcements (course_id, author_id, body) values ('30000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000b1', 'Instructor post');
+select tests.refused($$insert into public.announcements (course_id, author_id, body) values ('30000000-0000-0000-0000-00000000000b', '20000000-0000-0000-0000-0000000000b1', 'x')$$, 'instructor cannot post in another course');
+select tests.as_postgres();
+insert into public.announcements (id, course_id, author_id, body) values ('80000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-0000000000a1', 'Director post');
+select tests.as_user('00000000-0000-0000-0000-0000000000b1');
+update public.announcements set body = 'changed' where id = '80000000-0000-0000-0000-000000000002';
+select tests.ok((select body from public.announcements where id = '80000000-0000-0000-0000-000000000002') = 'Director post', 'instructor cannot edit someone else''s post');
+
+select tests.as_user('00000000-0000-0000-0000-0000000000c1');
+select tests.refused($$select public.course_ratings('30000000-0000-0000-0000-00000000000a')$$, 'students cannot load class ratings');
+select tests.ok((select count(*) from storage.objects where bucket_id = 'course-files') = 1, 'students open their course''s files');
+select tests.refused($$insert into storage.objects (bucket_id, name) values ('course-files', '30000000-0000-0000-0000-00000000000a/y/mine.pdf')$$, 'students cannot add course files');
+select tests.as_user('00000000-0000-0000-0000-0000000000c3');
+select tests.ok((select count(*) from storage.objects where bucket_id = 'course-files') = 0, 'students cannot open another course''s files');
+select tests.as_postgres();
+
+-- ---------------------------------------------------------------------
 -- Phase 2 follow-ups
 -- ---------------------------------------------------------------------
 -- Leaderboards leave out students who haven't signed up (S4), but their
