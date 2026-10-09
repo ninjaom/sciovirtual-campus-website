@@ -1,0 +1,114 @@
+.page.merch {
+  gap: 20px;
+}
+.soon {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border-radius: var(--r-card);
+  padding: 64px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.soon > * {
+  position: relative;
+}
+.soon .soon__c1 {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: var(--lavender);
+  opacity: 0.5;
+  top: -110px;
+  left: -70px;
+}
+.soon .soon__c2 {
+  position: absolute;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: var(--teal-soft);
+  bottom: -70px;
+  right: -40px;
+}
+.soon h2 {
+  font-size: 28px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+.soon p {
+  max-width: 460px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--blue-ink);
+}
+.soon__rec {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg);
+  border-radius: var(--r-card);
+  padding: 18px 24px;
+}
+.soon__rec > span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blue-ink);
+}
+.merchbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: var(--r-card);
+  padding: 14px 20px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.merchbar--teal {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+.merchgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 18px;
+}
+.merchitem {
+  background: var(--surface);
+  border-radius: var(--r-card);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.merchitem__img {
+  height: 170px;
+  border-radius: var(--r-row);
+  background: var(--lavender);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.merchitem__name {
+  font-size: 16px;
+  padding: 0 4px;
+}
+.btn.btn--teal {
+  background: var(--teal-ink);
+  color: #fff;
+  border-color: var(--teal-ink);
+}
+.btn.btn--teal:hover {
+  background: #12564a;
+  color: #fff;
+}

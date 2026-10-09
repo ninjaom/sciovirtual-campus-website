@@ -57,10 +57,10 @@ function DesktopNav({ entries, profile }: { entries: NavEntry[]; profile: Profil
           </div>
         ),
       )}
-      <Link to="/account" className="acct" aria-label="Account">
+      <NavLink to="/account" className={({ isActive }) => 'acct' + (isActive ? ' is-active' : '')} aria-label="Account">
         <Avatar profile={profile} size={30} />
         <span>{profile.role === 'student' ? profile.firstName : `${profile.firstName} ${profile.lastName}`}</span>
-      </Link>
+      </NavLink>
     </nav>
   )
 }

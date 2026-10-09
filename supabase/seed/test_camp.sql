@@ -24,7 +24,10 @@ update public.settings set
   leaderboard_state = 'live', leaderboard_top_n = 350, course_top_n = 10, takeover_bonus = 250,
   sessions_per_course = 9, courses_that_count = 3, admin_id_prefix = 'ADM',
   first_day = '2027-07-06', last_day = '2027-07-24',
-  faq_url = 'https://docs.google.com/document/d/example', attendance_url = 'https://www.sciovirtual.org/attendance'
+  faq_url = 'https://docs.google.com/document/d/example', attendance_url = 'https://www.sciovirtual.org/attendance',
+  daily_principles = array['Curiosity', 'Kompetition', 'Mitochondrion', 'Conscientiousness', 'Adroitness'],
+  merch_ready = true, merch_instructor_form_url = 'https://forms.gle/example-instructor',
+  merch_student_form_url = 'https://forms.gle/example-student', merch_recommendation_form_url = 'https://forms.gle/example-ideas'
 where event_id = (select id from public.events where is_current);
 
 delete from public.courses where event_id = (select id from public.events where is_current);
@@ -35,6 +38,7 @@ delete from public.quick_links where event_id = (select id from public.events wh
 delete from public.reminders where event_id = (select id from public.events where is_current);
 delete from public.camp_updates where event_id = (select id from public.events where is_current);
 delete from public.activity_log where event_id = (select id from public.events where is_current);
+delete from public.merch_items where event_id = (select id from public.events where is_current);
 
 -- ---------------------------------------------------------------------
 -- Grade items (2026 values) and courses (sessions are created for each)
@@ -193,6 +197,49 @@ where e.is_current;
 insert into public.camp_updates (event_id, author_id, title, body, pinned)
 select e.id, (select id from public.people where person_code = 'ADM27DA01'), x.title, 'Camp update text', x.pinned
 from public.events e, (values ('Update title', true), ('Update title', false)) as x(title, pinned)
+where e.is_current;
+
+-- ---------------------------------------------------------------------
+-- Instructor pages: announcements with comments, Midpoint feedback
+-- results, a few edit log rows and the merch catalog
+-- ---------------------------------------------------------------------
+insert into public.announcements (course_id, author_id, body, created_at)
+select c.id, st.person_id, x.body, timestamptz '2027-07-07 14:05-04' + (x.n || ' days')::interval
+from public.courses c
+join lateral (select cs.person_id from public.course_staff cs where cs.course_id = c.id order by cs.person_id limit 1) st on true
+cross join (values (0, 'Announcement text'), (5, 'Announcement text')) as x(n, body)
+where c.event_id = (select id from public.events where is_current);
+
+insert into public.announcement_comments (announcement_id, author_id, body, created_at)
+select a.id, a.author_id, 'Instructor reply', a.created_at + interval '2 hours'
+from public.announcements a join public.courses c on c.id = a.course_id and c.event_id = (select id from public.events where is_current)
+where a.created_at < timestamptz '2027-07-10';
+
+insert into public.feedback_results (course_id, kind, questions, comments, responses, camp_responses, class_rank, imported_at)
+select c.id, 'midpoint',
+  jsonb_build_array(
+    jsonb_build_object('question', 'How much do you look forward to class?', 'average', 8 + (c.sort % 10) / 10.0, 'camp_average', 8.4),
+    jsonb_build_object('question', 'How much do you learn?', 'average', 7.8 + (c.sort % 8) / 10.0, 'camp_average', 8.2),
+    jsonb_build_object('question', 'How hard is class? (5 is perfect)', 'average', 5 + (c.sort % 9) / 10.0, 'camp_average', 5.9),
+    jsonb_build_object('question', 'How satisfied are you?', 'average', 8.2 + (c.sort % 7) / 10.0, 'camp_average', 8.7)),
+  jsonb_build_array(
+    jsonb_build_object('question', 'What Can We Improve?', 'answers', jsonb_build_array('Student answer', 'Student answer', 'Student answer')),
+    jsonb_build_object('question', 'Comments', 'answers', jsonb_build_array('Student answer', 'Student answer'))),
+  12 + c.sort % 10, 412, 1 + c.sort, timestamptz '2027-07-15 12:00-04'
+from public.courses c
+where c.event_id = (select id from public.events where is_current) and c.sort <= 12;
+
+insert into public.grade_edits (course_id, person_id, grade_item_id, old_points, new_points, edited_by, edited_at)
+select g.course_id, g.person_id, g.grade_item_id, case when n = 1 then null else g.points - 10 end, g.points,
+       (select cs.person_id from public.course_staff cs where cs.course_id = g.course_id order by cs.person_id limit 1),
+       timestamptz '2027-07-13 20:00-04' + (n || ' minutes')::interval
+from (select g.*, row_number() over (partition by g.course_id order by g.person_id) as n
+      from public.grades g join public.courses c on c.id = g.course_id and c.event_id = (select id from public.events where is_current)) g
+where n <= 3;
+
+insert into public.merch_items (event_id, name, credit_cost, sort)
+select e.id, 'Item ' || chr(64 + i), 1000 + i * 500, i
+from public.events e, generate_series(1, 8) i
 where e.is_current;
 
 -- ---------------------------------------------------------------------

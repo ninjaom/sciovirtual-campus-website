@@ -15,6 +15,11 @@ export interface Settings {
   courses_that_count: number
   faq_url: string | null
   attendance_url: string | null
+  daily_principles: string[]
+  merch_ready: boolean
+  merch_student_form_url: string | null
+  merch_instructor_form_url: string | null
+  merch_recommendation_form_url: string | null
 }
 
 export interface CampEvent {

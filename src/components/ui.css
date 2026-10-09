@@ -457,3 +457,23 @@
   padding: 8px 10px;
   min-height: 36px;
 }
+.banner--plain .banner__c1 {
+  top: -280px;
+  right: -100px;
+}
+.banner--plain .banner__inner {
+  padding-top: 32px;
+  padding-bottom: 32px;
+  align-items: center;
+}
+.banner--plain .banner__text {
+  gap: 6px;
+}
+.banner--narrow .banner__inner {
+  max-width: 1040px;
+}
+.banner__sub {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--lavender);
+}

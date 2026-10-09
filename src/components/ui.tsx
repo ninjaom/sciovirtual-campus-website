@@ -271,15 +271,33 @@ export function TableWrap({ children, sticky, maxHeight }: { children: ReactNode
 
 /* ---------- Banner (blue hero strip) ---------- */
 
-export function Banner({ eyebrow, title, children }: { eyebrow?: ReactNode; title: ReactNode; children?: ReactNode }) {
+export function Banner({
+  eyebrow,
+  title,
+  sub,
+  children,
+  plain,
+  narrow,
+}: {
+  eyebrow?: ReactNode
+  title: ReactNode
+  /** Line under the title (e.g. "Sneak Preview of 2027 Merch!"). */
+  sub?: ReactNode
+  children?: ReactNode
+  /** Single circle and slimmer padding (Account, Merchandise). */
+  plain?: boolean
+  /** 1040px wide content (Account). */
+  narrow?: boolean
+}) {
   return (
-    <section className="banner">
+    <section className={'banner' + (plain ? ' banner--plain' : '') + (narrow ? ' banner--narrow' : '')}>
       <span className="banner__c1" aria-hidden="true" />
-      <span className="banner__c2" aria-hidden="true" />
+      {!plain && <span className="banner__c2" aria-hidden="true" />}
       <div className="banner__inner">
         <div className="banner__text">
           {eyebrow && <span className="banner__eyebrow">{eyebrow}</span>}
           <h1>{title}</h1>
+          {sub && <span className="banner__sub">{sub}</span>}
         </div>
         {children && <div className="banner__side">{children}</div>}
       </div>

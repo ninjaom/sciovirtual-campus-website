@@ -272,3 +272,8 @@
     display: flex;
   }
 }
+.acct.is-active,
+.acct.is-active:hover {
+  color: var(--blue);
+  background: #fff;
+}

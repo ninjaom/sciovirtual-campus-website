@@ -15,11 +15,32 @@ import { Accounts } from './pages/admin/Accounts'
 import { Courses } from './pages/admin/Courses'
 import { GradeItems } from './pages/admin/GradeItems'
 import { HomeContent } from './pages/admin/HomeContent'
+import { useAuth } from './lib/auth'
+import { CourseLayout } from './pages/instructor/CourseLayout'
+import { InstructorHome } from './pages/instructor/InstructorHome'
+import { Dashboard } from './pages/instructor/Dashboard'
+import { Scores } from './pages/instructor/Scores'
+import { Roster } from './pages/instructor/Roster'
+import { Attendance } from './pages/instructor/Attendance'
+import { Feedback } from './pages/instructor/Feedback'
+import { Announcements } from './pages/instructor/Announcements'
+import { Account } from './pages/shared/Account'
+import { StaffMerchandise } from './pages/shared/Merchandise'
 
 // The styleguide is for checking components on the test site only.
 const showStyleguide = window.location.hostname !== 'campus.sciovirtual.org'
 
 const BUILT = ['/admin', '/admin/accounts', '/admin/courses', '/admin/grade-items', '/admin/home-content']
+
+/** Home: instructors get Instructor Home; the student Home comes in Phase 4. */
+function HomeRoute() {
+  const { profile } = useAuth()
+  return profile?.role === 'instructor' ? <InstructorHome /> : <Placeholder title="Home" />
+}
+function MerchRoute() {
+  const { profile } = useAuth()
+  return profile?.role === 'student' ? <Placeholder title="Merchandise" /> : <StaffMerchandise />
+}
 
 export default function App() {
   return (
@@ -36,12 +57,19 @@ export default function App() {
 
       {/* Signed in */}
       <Route element={<RequireAuth><AppShell /></RequireAuth>}>
-        <Route path="/home" element={<Placeholder title="Home" />} />
+        <Route path="/home" element={<HomeRoute />} />
         <Route path="/courses" element={<RequireAuth roles={['student']}><Placeholder title="My Courses" /></RequireAuth>} />
-        <Route path="/course/:code/*" element={<RequireAuth roles={['instructor', 'admin']}><Placeholder title="Course" /></RequireAuth>} />
+        <Route path="/course/:code" element={<RequireAuth roles={['instructor', 'admin']}><CourseLayout /></RequireAuth>}>
+          <Route index element={<Dashboard />} />
+          <Route path="scores" element={<Scores />} />
+          <Route path="roster" element={<Roster />} />
+          <Route path="attendance" element={<Attendance />} />
+          <Route path="feedback" element={<Feedback />} />
+          <Route path="announcements" element={<Announcements />} />
+        </Route>
         <Route path="/leaderboard" element={<Placeholder title="Leaderboard" />} />
-        <Route path="/merchandise" element={<Placeholder title="Merchandise" />} />
-        <Route path="/account" element={<Placeholder title="Account" />} />
+        <Route path="/merchandise" element={<MerchRoute />} />
+        <Route path="/account" element={<Account />} />
         <Route path="/learn/*" element={<Placeholder title="Learn" />} />
         <Route path="/past-resources" element={<Placeholder title="Past Resources" />} />
         <Route path="/admin" element={<RequireAuth roles={['admin']}><AdminLayout /></RequireAuth>}>
