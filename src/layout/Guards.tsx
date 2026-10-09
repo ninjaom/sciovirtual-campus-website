@@ -21,6 +21,7 @@ export function RequireAuth({ roles, children }: { roles?: Role[]; children: Rea
 export function SignedOutOnly({ children }: { children: ReactNode }) {
   const { loading, session, profile } = useAuth()
   if (loading) return <Loading />
-  if (session && profile) return <Navigate to="/home" replace />
+  // Admins land on the Admin page; everyone else on Home.
+  if (session && profile) return <Navigate to={profile.role === 'admin' ? '/admin' : '/home'} replace />
   return <>{children}</>
 }

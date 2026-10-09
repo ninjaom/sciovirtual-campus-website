@@ -5,6 +5,7 @@ import {
   useState,
   type AnchorHTMLAttributes,
   type ComponentProps,
+  type CSSProperties,
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
@@ -87,11 +88,13 @@ interface FieldBits {
   label: ReactNode
   hint?: ReactNode
   error?: ReactNode
+  /** Style for the label + input wrapper (e.g. flex basis in a row). */
+  fieldStyle?: CSSProperties
 }
 
-function FieldWrap({ id, label, hint, error, children }: FieldBits & { id: string; children: ReactNode }) {
+function FieldWrap({ id, label, hint, error, children, fieldStyle }: FieldBits & { id: string; children: ReactNode }) {
   return (
-    <div className="field">
+    <div className="field" style={fieldStyle}>
       <label htmlFor={id} className="field__label">
         {label}
       </label>
@@ -113,11 +116,11 @@ function FieldWrap({ id, label, hint, error, children }: FieldBits & { id: strin
   )
 }
 
-export function TextField({ label, hint, error, id, className, ...rest }: FieldBits & InputHTMLAttributes<HTMLInputElement>) {
+export function TextField({ label, hint, error, id, className, fieldStyle, ...rest }: FieldBits & InputHTMLAttributes<HTMLInputElement>) {
   const auto = useId()
   const fid = id ?? auto
   return (
-    <FieldWrap id={fid} label={label} hint={hint} error={error}>
+    <FieldWrap id={fid} label={label} hint={hint} error={error} fieldStyle={fieldStyle}>
       <input
         id={fid}
         className={'input' + (error ? ' is-invalid' : '') + (className ? ' ' + className : '')}
@@ -129,11 +132,11 @@ export function TextField({ label, hint, error, id, className, ...rest }: FieldB
   )
 }
 
-export function SelectField({ label, hint, error, id, children, ...rest }: FieldBits & SelectHTMLAttributes<HTMLSelectElement>) {
+export function SelectField({ label, hint, error, id, children, fieldStyle, ...rest }: FieldBits & SelectHTMLAttributes<HTMLSelectElement>) {
   const auto = useId()
   const fid = id ?? auto
   return (
-    <FieldWrap id={fid} label={label} hint={hint} error={error}>
+    <FieldWrap id={fid} label={label} hint={hint} error={error} fieldStyle={fieldStyle}>
       <select id={fid} className={'input' + (error ? ' is-invalid' : '')} aria-invalid={error ? true : undefined} {...rest}>
         {children}
       </select>
@@ -141,11 +144,11 @@ export function SelectField({ label, hint, error, id, children, ...rest }: Field
   )
 }
 
-export function TextAreaField({ label, hint, error, id, ...rest }: FieldBits & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function TextAreaField({ label, hint, error, id, fieldStyle, ...rest }: FieldBits & TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const auto = useId()
   const fid = id ?? auto
   return (
-    <FieldWrap id={fid} label={label} hint={hint} error={error}>
+    <FieldWrap id={fid} label={label} hint={hint} error={error} fieldStyle={fieldStyle}>
       <textarea id={fid} className={'input input--area' + (error ? ' is-invalid' : '')} aria-invalid={error ? true : undefined} {...rest} />
     </FieldWrap>
   )
@@ -170,25 +173,30 @@ export function Tabs<T extends string>({
   options,
   value,
   onChange,
+  fill,
 }: {
   label: string
   options: { value: T; label: ReactNode }[]
   value: T
   onChange: (v: T) => void
+  /** Stretch to full width with equal segments (used in pop-ups). */
+  fill?: boolean
 }) {
   const wrap = useRef<HTMLDivElement>(null)
   const [thumb, setThumb] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
   useLayoutEffect(() => {
     const measure = () => {
       const el = wrap.current?.querySelector<HTMLElement>('[aria-selected="true"]')
-      if (el) setThumb({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight })
+      setThumb(el && el.offsetWidth > 0 ? { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight } : null)
     }
     measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    // Re-measure when the tabs change size (e.g. inside a pop-up that just opened).
+    const ro = new ResizeObserver(measure)
+    if (wrap.current) ro.observe(wrap.current)
+    return () => ro.disconnect()
   }, [value, options.length])
   return (
-    <div ref={wrap} role="tablist" aria-label={label} className={'tabs' + (thumb ? ' is-measured' : '')}>
+    <div ref={wrap} role="tablist" aria-label={label} className={'tabs' + (thumb ? ' is-measured' : '') + (fill ? ' tabs--fill' : '')}>
       {thumb && (
         <span
           className="tabs__thumb"

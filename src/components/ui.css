@@ -443,3 +443,16 @@
     font-size: 28px;
   }
 }
+.tabs--fill {
+  display: flex;
+  align-self: stretch;
+  background: var(--bg);
+  gap: 4px;
+  padding: 4px;
+}
+.tabs--fill .tabs__tab {
+  flex: 1;
+  font-size: 13px;
+  padding: 8px 10px;
+  min-height: 36px;
+}

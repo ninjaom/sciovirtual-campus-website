@@ -10,9 +10,16 @@ import { ForgotPassword } from './pages/auth/ForgotPassword'
 import { ResetPassword } from './pages/auth/ResetPassword'
 import { SignOut } from './pages/auth/SignOut'
 import { Styleguide } from './pages/Styleguide'
+import { Overview } from './pages/admin/Overview'
+import { Accounts } from './pages/admin/Accounts'
+import { Courses } from './pages/admin/Courses'
+import { GradeItems } from './pages/admin/GradeItems'
+import { HomeContent } from './pages/admin/HomeContent'
 
 // The styleguide is for checking components on the test site only.
 const showStyleguide = window.location.hostname !== 'campus.sciovirtual.org'
+
+const BUILT = ['/admin', '/admin/accounts', '/admin/courses', '/admin/grade-items', '/admin/home-content']
 
 export default function App() {
   return (
@@ -38,13 +45,14 @@ export default function App() {
         <Route path="/learn/*" element={<Placeholder title="Learn" />} />
         <Route path="/past-resources" element={<Placeholder title="Past Resources" />} />
         <Route path="/admin" element={<RequireAuth roles={['admin']}><AdminLayout /></RequireAuth>}>
-          {ADMIN_SECTIONS.map((s) =>
-            s.to === '/admin' ? (
-              <Route key={s.to} index element={<AdminPlaceholder title={s.label} />} />
-            ) : (
-              <Route key={s.to} path={s.to.replace('/admin/', '')} element={<AdminPlaceholder title={s.label} />} />
-            ),
-          )}
+          <Route index element={<Overview />} />
+          <Route path="accounts" element={<Accounts />} />
+          <Route path="courses" element={<Courses />} />
+          <Route path="grade-items" element={<GradeItems />} />
+          <Route path="home-content" element={<HomeContent />} />
+          {ADMIN_SECTIONS.filter((s) => !BUILT.includes(s.to)).map((s) => (
+            <Route key={s.to} path={s.to.replace('/admin/', '')} element={<AdminPlaceholder title={s.label} />} />
+          ))}
         </Route>
       </Route>
 

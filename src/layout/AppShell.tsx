@@ -31,7 +31,7 @@ function ItemLink({ item, className, onClick }: { item: NavLinkT; className: str
     )
   }
   return (
-    <NavLink className={({ isActive }) => className + (isActive ? ' is-active' : '')} to={item.to} onClick={onClick} end={item.to === '/admin'}>
+    <NavLink className={({ isActive }) => className + (isActive ? ' is-active' : '')} to={item.to} onClick={onClick}>
       {item.label}
     </NavLink>
   )
