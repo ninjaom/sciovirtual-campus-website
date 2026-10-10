@@ -29,3 +29,10 @@ dist-ssr
 !.env.example
 supabase/.temp
 supabase/.branches
+
+# Stress test: local settings, the script's passwords and results
+stress-test/config.json
+stress-test/accounts.txt
+stress-test/.accounts.json
+stress-test/.changes.json
+stress-test/results-*.txt

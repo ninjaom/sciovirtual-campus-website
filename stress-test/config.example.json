@@ -1,0 +1,9 @@
+{
+  "supabaseUrl": "https://nqslxgqtisvgjvwvsjhd.supabase.co",
+  "publishableKey": "PASTE the test project's publishable key (starts with sb_publishable_)",
+  "siteUrl": "https://sciovirtual-campus-website.pages.dev",
+  "minutes": 10,
+  "students": 500,
+  "instructors": 31,
+  "admins": 5
+}
