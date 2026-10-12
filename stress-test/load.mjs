@@ -18,6 +18,7 @@ const DIR = path.dirname(fileURLToPath(import.meta.url))
 const FILES = {
   config: path.join(DIR, 'config.json'),
   accountsTxt: path.join(DIR, 'accounts.txt'),
+  accountsCsv: path.join(DIR, 'accounts.csv'),
   accounts: path.join(DIR, '.accounts.json'), // passwords the script made up; never committed
   changes: path.join(DIR, '.changes.json'), // original values of anything changed, for restore
 }
@@ -42,8 +43,20 @@ function stop(msg) {
   process.exit(1)
 }
 
-const config = readJson(FILES.config, null)
-if (!config) stop('config.json is missing. Copy config.example.json to config.json and fill it in (see README.md).')
+// First time: ask for the test project's publishable key and save config.json.
+let config = readJson(FILES.config, null)
+if (!config) {
+  const { createInterface } = await import('node:readline/promises')
+  const rl = createInterface({ input: process.stdin, output: process.stdout })
+  console.log('\nFirst run: this needs the TEST project\'s publishable key.')
+  console.log('Supabase → test project → Project Settings → API Keys → Publishable key (starts with sb_publishable_).')
+  const key = (await rl.question('Paste it here and press Return: ')).trim()
+  rl.close()
+  if (!key.startsWith('sb_publishable_')) stop('That doesn\'t look like a publishable key (it should start with sb_publishable_). Never use the secret key here.')
+  config = { ...readJson(path.join(DIR, 'config.example.json'), {}), publishableKey: key }
+  writeJson(FILES.config, config)
+  console.log('Saved to stress-test/config.json.\n')
+}
 for (const k of ['supabaseUrl', 'publishableKey']) if (!config[k] || String(config[k]).includes('PASTE')) stop(`config.json: fill in "${k}".`)
 if (String(config.supabaseUrl).includes(REAL_PROJECT)) stop('config.json points at the REAL project. This script only runs on the test project.')
 const API = String(config.supabaseUrl).replace(/\/+$/, '')
@@ -120,9 +133,10 @@ const ids = (list) => `(${[...new Set(list)].join(',')})`
 const internalEmail = (id) => `${id.trim().toLowerCase()}@accounts.campus.sciovirtual.org`
 
 function parseAccountsTxt() {
-  if (!fs.existsSync(FILES.accountsTxt)) return []
+  const file = [FILES.accountsCsv, FILES.accountsTxt].find((f) => fs.existsSync(f))
+  if (!file) return []
   const out = []
-  for (const line of fs.readFileSync(FILES.accountsTxt, 'utf8').split(/\r?\n/)) {
+  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
     const id = line.match(/\b(ADM27[A-Z]{2}\d{2}|C[A-Z]{2}27[A-Z]{2}\d{2}|27[A-Z]{2}\d{4})\b/i)
     const code = line.match(/\b([A-Z0-9]{4}-[A-Z0-9]{4})\b/i)
     if (id && code) out.push({ id: id[1].toUpperCase(), code: code[1].toUpperCase() })
@@ -144,7 +158,7 @@ async function signIn(id, password) {
 async function setup() {
   const saved = readJson(FILES.accounts, {})
   const list = parseAccountsTxt()
-  if (!list.length && !Object.keys(saved).length) stop('accounts.txt is empty. Paste the result of supabase/seed/stress_test_accounts.sql into it (see README.md).')
+  if (!list.length && !Object.keys(saved).length) stop('No accounts file. Save the result of supabase/seed/stress_test_accounts.sql as stress-test/accounts.csv (see README.md).')
   let made = 0
   for (const { id, code } of list) {
     if (saved[id]) continue

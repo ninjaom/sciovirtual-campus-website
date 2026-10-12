@@ -14,21 +14,20 @@ stop it early.
 
 ## One-time setup (about 10 minutes)
 
-1. Install Node 18 or newer (https://nodejs.org, the LTS version). Check
-   with `node --version`.
-2. Get this repository on your computer (GitHub Desktop, or
-   `git clone`), and open a terminal in its folder.
-3. Copy `stress-test/config.example.json` to `stress-test/config.json` and
-   paste in the test project's publishable key (Supabase → test project →
-   Project Settings → API Keys). It's the same public key the site uses.
-   Never use the secret key here.
-4. In the test project's SQL Editor, run `supabase/seed/stress_test_accounts.sql`.
-   Copy the result table (IDs and setup codes) into a new file,
-   `stress-test/accounts.txt`. Any layout works (copied grid, CSV).
-5. Run `node stress-test/load.mjs setup`. It signs up the 27 accounts
-   through the test site with passwords it makes up and keeps in
-   `stress-test/.accounts.json` (never committed). It ends with
-   "27 of 27 accounts can sign in".
+1. Install Node 18 or newer (https://nodejs.org, the LTS version).
+2. Get this repository on your computer (GitHub Desktop: Fetch origin, then
+   Pull origin, so you have the latest version).
+3. In the test project's SQL Editor, run `supabase/seed/stress_test_accounts.sql`
+   and download the result as CSV. Put it in the `stress-test` folder named
+   `accounts.csv` (it's never committed).
+4. Open a terminal in the repository folder (GitHub Desktop: Repository →
+   Open in Terminal) and run `node stress-test/load.mjs setup`.
+   The first time, it asks for the test project's publishable key
+   (Supabase → test project → Project Settings → API Keys, starts with
+   `sb_publishable_`) and saves it in `stress-test/config.json`. Never use
+   the secret key. It then signs up the 27 accounts through the test site
+   with passwords it makes up and keeps in `stress-test/.accounts.json`
+   (never committed), and ends with "27 of 27 accounts can sign in".
 
 ## The run (10 minutes)
 
