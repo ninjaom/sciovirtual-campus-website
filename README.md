@@ -25,4 +25,4 @@ settings in Cloudflare Pages → Settings → Variables and Secrets (never in th
 
 - Changes: `supabase/migrations` only.
 - Privacy tests: `supabase/tests/security_test.sql`, run automatically by GitHub Actions on every push.
-- Fake data for the test project: `supabase/seed/test_accounts.sql` (test project only).
+- Fake data for the test project (test project only): `supabase/seed/test_camp.sql`, then `supabase/seed/tester_accounts.sql` (the 30 people-test accounts). `supabase/seed/stress_test_accounts.sql` is for the stress test script.

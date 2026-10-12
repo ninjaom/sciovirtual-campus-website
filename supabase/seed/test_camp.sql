@@ -5,8 +5,9 @@
 -- students, 12 teams, 9 sessions per course with check-ins for the first
 -- 4, Midpoint scores, live events and async challenges with points.
 --
--- Accounts that already signed up (like your ADM27DA01) are kept; their
--- names and IDs stay the same. The last query lists the setup codes.
+-- Accounts that already signed up are kept; their names and IDs stay the
+-- same. The last query lists the setup codes. Admin and tester accounts
+-- come from tester_accounts.sql (run it after this file).
 
 begin;
 
@@ -70,10 +71,7 @@ from public.courses c join public.events e on e.id = c.event_id and e.is_current
 -- ---------------------------------------------------------------------
 -- People (kept if they exist, so signed-up accounts still work)
 -- ---------------------------------------------------------------------
-insert into public.people (person_code, role, first_name, last_name, email) values
-  ('ADM27DA01', 'admin', 'Director', 'A', 'director.a@example.com'),
-  ('ADM27DB01', 'admin', 'Director', 'B', 'director.b@example.com')
-on conflict (person_code) do nothing;
+-- (No fake admins: the tester admins come from tester_accounts.sql.)
 
 -- Instructors: 95 in all. Four per course for the first 2 courses, three
 -- for the other 29. IDs: course code + 27 + I..L + first letter of the
@@ -206,7 +204,7 @@ select e.id, x.body, x.sort from public.events e,
 where e.is_current;
 
 insert into public.camp_updates (event_id, author_id, title, body, pinned)
-select e.id, (select id from public.people where person_code = 'ADM27DA01'), x.title, 'Camp update text', x.pinned
+select e.id, (select id from public.people where person_code = 'ADM27OL01'), x.title, 'Camp update text', x.pinned
 from public.events e, (values ('Update title', true), ('Update title', false)) as x(title, pinned)
 where e.is_current;
 
