@@ -342,6 +342,10 @@
   max-height: 180px;
   overflow: auto;
 }
+.seniorcheck {
+  align-self: flex-start;
+  font-weight: 600;
+}
 .coursepick__item {
   display: inline-flex;
   align-items: center;

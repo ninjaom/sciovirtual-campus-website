@@ -31,12 +31,12 @@ export function Account() {
 
   const { data, reload } = useLoad(async () => {
     const [me, courses, team] = await Promise.all([
-      supabase.from('people').select('recovery_email, avatar_path').eq('id', p.id).single(),
+      supabase.from('people').select('recovery_email, avatar_path, senior').eq('id', p.id).single(),
       p.courses.length ? supabase.from('courses').select('name, time_slot').in('id', p.courses.map((c) => c.id)).order('name') : Promise.resolve({ data: [], error: null }),
       p.role === 'student' ? supabase.from('team_members').select('team:teams(name)').eq('person_id', p.id).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ])
     return {
-      me: must(me) as { recovery_email: string | null; avatar_path: string | null },
+      me: must(me) as { recovery_email: string | null; avatar_path: string | null; senior: boolean },
       courses: must(courses) as { name: string; time_slot: string | null }[],
       team: ((team.data as { team: { name: string } | null } | null)?.team?.name ?? null) as string | null,
     }
@@ -76,7 +76,9 @@ export function Account() {
             <span className="acct-photo__full">
               {p.firstName} {p.lastName}
             </span>
-            <span className="acct-photo__sub">{isStudent ? p.username : p.role === 'instructor' ? p.courses.map((c) => c.name).join(', ') : 'Admin'}</span>
+            <span className="acct-photo__sub">
+              {isStudent ? p.username : p.role === 'instructor' ? [data?.me.senior ? 'Senior Instructor' : null, p.courses.map((c) => c.name).join(', ')].filter(Boolean).join(' · ') : 'Admin'}
+            </span>
           </div>
           <button type="button" className="acct-photo__btn" onClick={open('photo')}>
             {p.avatarUrl ? 'Change photo' : 'Upload Photo'}

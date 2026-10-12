@@ -140,6 +140,17 @@
   font-weight: 600;
   color: var(--text);
 }
+.person__title {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--teal-ink);
+  background: var(--teal-soft);
+  border-radius: var(--r-pill);
+  padding: 2px 9px;
+  vertical-align: 1px;
+}
 .person__sub {
   font-size: 13px;
   overflow-wrap: anywhere;

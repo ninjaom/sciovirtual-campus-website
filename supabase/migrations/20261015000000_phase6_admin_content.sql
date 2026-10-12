@@ -5,8 +5,9 @@
 --     PDFs and pictures. Readers see published items only.
 --   * Past Resources: one link per course and year, with a subject, and a
 --     published/archived state like Learn.
---   * Feedback Imports: the sheet links, an import history, and one
---     function that replaces a form's results in a single step.
+--   * Feedback Imports: results come from an uploaded CSV (the form's
+--     sheet stays private); an import history, and one function that
+--     replaces a form's results in a single step.
 --   * Edit Logs: the activity log gains structured columns (type, course,
 --     where, what, old -> new) and logs points, attendance, attendance
 --     codes, account resets and leaderboard status changes row by row.
@@ -60,9 +61,6 @@ create trigger posts_touch before update on public.posts for each row execute fu
 -- ---------------------------------------------------------------------
 -- Feedback imports
 -- ---------------------------------------------------------------------
-alter table public.settings add column feedback_midpoint_url text;
-alter table public.settings add column feedback_final_url text;
-
 create table public.feedback_imports (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references public.events (id) on delete cascade,
@@ -71,7 +69,7 @@ create table public.feedback_imports (
   imported_at timestamptz not null default now(),
   responses int not null,
   unmatched int not null default 0,
-  source text not null check (source in ('link', 'csv'))
+  source text not null default 'csv' check (source = 'csv')
 );
 alter table public.feedback_imports enable row level security;
 revoke all on public.feedback_imports from anon;

@@ -2,11 +2,9 @@ import { useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { must, useLoad } from '../../lib/useLoad'
 import { useCurrentEvent } from '../../lib/useEvent'
-import { useAutosave } from '../../lib/useAutosave'
 import { when } from '../../lib/camp'
-import { postApiAuth } from '../../lib/api'
 import { summarizeFeedback, type FeedbackSummary } from '../../lib/feedback'
-import { Button, Card, Pill, SavedStatus, Skeleton, TableWrap, TextField } from '../../components/ui'
+import { Button, Card, Pill, Skeleton, TableWrap } from '../../components/ui'
 import { Dialog } from '../../components/Dialog'
 import { useToast } from '../../components/Toast'
 import { AdminHead, LoadError } from './AdminBits'
@@ -14,16 +12,6 @@ import './phase6.css'
 
 type Kind = 'midpoint' | 'final'
 const TITLE: Record<Kind, string> = { midpoint: 'Midpoint', final: 'Final' }
-const URL_KEY = { midpoint: 'feedback_midpoint_url', final: 'feedback_final_url' } as const
-const SHEET_ERRORS: Record<string, string> = {
-  not_a_sheet: 'That isn’t a Google Sheets link',
-  not_shared: 'Couldn’t open that sheet. Share it as “Anyone with the link can view”, or upload a CSV instead.',
-  too_big: 'That sheet is too big to import',
-  admins_only: 'Only admins can import feedback',
-  signed_out: 'Please sign in again',
-  server: 'Something went wrong. Please try again.',
-}
-
 interface ImportRow {
   id: string
   kind: Kind
@@ -38,9 +26,8 @@ export function FeedbackImports() {
   const toast = useToast()
   const ev = useCurrentEvent()
   const eventId = ev.data?.event?.id ?? null
-  const s = ev.data?.settings ?? null
   const [origin, setOrigin] = useState<HTMLElement | null>(null)
-  const [review, setReview] = useState<{ kind: Kind; source: 'link' | 'csv'; summary: FeedbackSummary } | null>(null)
+  const [review, setReview] = useState<{ kind: Kind; summary: FeedbackSummary } | null>(null)
 
   const { data, error, reload } = useLoad(async () => {
     if (!eventId) return null
@@ -58,23 +45,41 @@ export function FeedbackImports() {
     }
   }, [eventId])
 
-  function start(kind: Kind, source: 'link' | 'csv', text: string) {
+  // Total Bonus points per course: the tiebreaker for Class Ranking
+  async function bonusTotals(): Promise<Map<string, number> | null> {
+    if (!eventId) return null
+    const items = must(await supabase.from('grade_items').select('id').eq('event_id', eventId).ilike('name', 'bonus')) as { id: string }[]
+    const totals = new Map<string, number>()
+    if (!items.length) return totals
+    const rows = must(await supabase.from('grades').select('course_id, points').in('grade_item_id', items.map((i) => i.id))) as { course_id: string; points: number }[]
+    for (const r of rows) totals.set(r.course_id, (totals.get(r.course_id) ?? 0) + Number(r.points))
+    return totals
+  }
+
+  async function start(kind: Kind, text: string) {
     if (!data) return
-    const summary = summarizeFeedback(text, data.courses)
+    let bonus: Map<string, number> | null
+    try {
+      bonus = await bonusTotals()
+    } catch {
+      bonus = null
+    }
+    if (!bonus) return toast('Something went wrong. Please try again.', 'error')
+    const summary = summarizeFeedback(text, data.courses, bonus)
     if (!summary.courseColumn) return toast('Couldn’t find a Course column in that file', 'error')
     if (!summary.results.length) return toast('No responses matched a course', 'error')
-    setReview({ kind, source, summary })
+    setReview({ kind, summary })
   }
 
   async function confirm() {
     if (!review) return
-    const { kind, source, summary } = review
+    const { kind, summary } = review
     const res = await supabase.rpc('admin_import_feedback', {
       p_kind: kind,
       p_rows: summary.results,
       p_responses: summary.responses - summary.unmatched,
       p_unmatched: summary.unmatched,
-      p_source: source,
+      p_source: 'csv',
     })
     setReview(null)
     if (res.error) return toast('Something went wrong. Please try again.', 'error')
@@ -94,11 +99,9 @@ export function FeedbackImports() {
             <FormCard
               key={k}
               kind={k}
-              eventId={eventId}
-              initialUrl={(s?.[URL_KEY[k]] as string | null) ?? ''}
               last={last ?? null}
-              loading={!data || !s}
-              onText={(source, text) => start(k, source, text)}
+              loading={!data}
+              onText={(text) => start(k, text)}
             />
           )
         })}
@@ -169,39 +172,19 @@ export function FeedbackImports() {
   )
 }
 
-function FormCard({
-  kind,
-  eventId,
-  initialUrl,
-  last,
-  loading,
-  onText,
-}: {
-  kind: Kind
-  eventId: string | null
-  initialUrl: string
-  last: ImportRow | null
-  loading: boolean
-  onText: (source: 'link' | 'csv', text: string) => void
-}) {
-  const toast = useToast()
-  const [url, setUrl] = useState(initialUrl)
+function FormCard({ kind, last, loading, onText }: { kind: Kind; last: ImportRow | null; loading: boolean; onText: (text: string) => Promise<void> }) {
   const [busy, setBusy] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-  const save = useAutosave<Record<string, string | null>>((patch) => supabase.from('settings').update(patch).eq('event_id', eventId ?? ''))
 
-  async function fromLink() {
-    if (!url.trim()) return toast('Paste the responses sheet link first', 'error')
-    setBusy(true)
-    const res = await postApiAuth<{ ok: boolean; csv?: string; error?: string }>('fetch-sheet', { url: url.trim() })
-    setBusy(false)
-    if (!res.ok || !res.csv) return toast(SHEET_ERRORS[res.error ?? 'server'] ?? SHEET_ERRORS.server, 'error')
-    onText('link', res.csv)
-  }
   async function fromFile(f: File | null | undefined) {
     if (!f) return
-    onText('csv', await f.text())
-    if (fileRef.current) fileRef.current.value = ''
+    setBusy(true)
+    try {
+      await onText(await f.text())
+    } finally {
+      setBusy(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
   }
 
   if (loading) return <Card title={TITLE[kind]}><Skeleton height={120} /></Card>
@@ -212,19 +195,9 @@ function FormCard({
         {last ? <Pill tone="green">Imported</Pill> : <Pill tone="amber">Not imported</Pill>}
       </div>
       <span className="p6sub">{last ? `Last imported ${when(last.imported_at)} · ${last.responses.toLocaleString('en-US')} responses` : 'Not imported yet'}</span>
-      <TextField
-        label="Google Form responses sheet link"
-        value={url}
-        placeholder="https://docs.google.com/spreadsheets/d/…"
-        onChange={(e) => {
-          setUrl(e.target.value)
-          save.change({ [URL_KEY[kind]]: e.target.value.trim() || null })
-        }}
-      />
-      {save.state !== 'saved' && <SavedStatus state={save.state} />}
+      <p className="field__hint">In the Google Form's responses sheet, choose File › Download › Comma-separated values (.csv), then upload that file here. The sheet stays private.</p>
       <div className="p6btns">
-        <Button onClick={fromLink} disabled={busy}>{busy ? 'Importing…' : last ? 'Import again' : 'Import'}</Button>
-        <Button variant="secondary" onClick={() => fileRef.current?.click()}>Upload CSV instead</Button>
+        <Button onClick={() => fileRef.current?.click()} disabled={busy}>{busy ? 'Reading…' : last ? 'Upload CSV again' : 'Upload CSV'}</Button>
         <input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={(e) => fromFile(e.target.files?.[0])} />
       </div>
     </Card>

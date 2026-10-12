@@ -29,6 +29,7 @@ interface Person {
   parent_email: string | null
   team_members: { team_id: string }[]
   course_staff: { course_id: string }[]
+  senior: boolean
   setup_codes: { code: string; used_at: string | null }[]
 }
 interface Team {
@@ -44,7 +45,7 @@ interface Course {
 }
 
 const PERSON_COLS =
-  'id, person_code, role, first_name, last_name, username, auth_user_id, email, grade, school, city, state, student_email, parent_email, team_members(team_id), course_staff(course_id), setup_codes!setup_codes_person_id_fkey(code, used_at)'
+  'id, person_code, role, first_name, last_name, senior, username, auth_user_id, email, grade, school, city, state, student_email, parent_email, team_members(team_id), course_staff(course_id), setup_codes!setup_codes_person_id_fkey(code, used_at)'
 
 function openCode(p: Person): string | null {
   return p.setup_codes.find((c) => !c.used_at)?.code ?? null
@@ -205,7 +206,10 @@ export function Accounts() {
                     <tr key={p.id}>
                       <td>{p.person_code}</td>
                       <td>{p.first_name}</td>
-                      <td>{p.last_name}</td>
+                      <td>
+                        {p.last_name}
+                        {p.senior && <> <Pill tone="green">Senior Instructor</Pill></>}
+                      </td>
                       {tab === 'stu' && <td>{p.username ?? '—'}</td>}
                       {tab === 'stu' && <td>{p.team_members.map((m) => teamName.get(m.team_id)).filter(Boolean).join(', ') || '—'}</td>}
                       {tab === 'ins' && <td className="wrap">{p.course_staff.map((c) => courseName.get(c.course_id)).filter(Boolean).join(', ') || '—'}</td>}
@@ -353,6 +357,7 @@ function EditPerson({
   })
   const [team, setTeam] = useState(person.team_members[0]?.team_id ?? '')
   const [staffOf, setStaffOf] = useState<string[]>(person.course_staff.map((c) => c.course_id))
+  const [senior, setSenior] = useState(person.senior)
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }))
@@ -374,6 +379,7 @@ function EditPerson({
         parent_email: f.parent_email.trim() || null,
       })
     } else patch.email = f.email.trim() || null
+    if (person.role === 'instructor' && senior !== person.senior) patch.senior = senior
     const { error } = await supabase.from('people').update(patch).eq('id', person.id)
     if (error) {
       setBusy(false)
@@ -437,11 +443,23 @@ function EditPerson({
           <TextField label="Email" type="email" value={f.email} onChange={set('email')} />
         )}
         {person.role === 'instructor' && (
-          <CoursePicker courses={courses} value={staffOf} onChange={setStaffOf} />
+          <>
+            <SeniorCheck value={senior} onChange={setSenior} />
+            <CoursePicker courses={courses} value={staffOf} onChange={setStaffOf} />
+          </>
         )}
         {err && <div role="alert" className="auth__formerror">{err}</div>}
       </div>
     </Dialog>
+  )
+}
+
+function SeniorCheck({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="coursepick__item seniorcheck">
+      <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} />
+      Senior Instructor
+    </label>
   )
 }
 
@@ -490,6 +508,7 @@ function AddPerson({
   const [email, setEmail] = useState('')
   const [team, setTeam] = useState('')
   const [staffOf, setStaffOf] = useState<string[]>([])
+  const [senior, setSenior] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -511,7 +530,7 @@ function AddPerson({
     }
     const ins = await supabase
       .from('people')
-      .insert({ person_code: code, role, first_name: first.trim(), last_name: last.trim(), email: role === 'student' ? null : email.trim() || null })
+      .insert({ person_code: code, role, first_name: first.trim(), last_name: last.trim(), email: role === 'student' ? null : email.trim() || null, senior: role === 'instructor' && senior })
       .select('id')
       .single()
     if (ins.error) {
@@ -564,7 +583,12 @@ function AddPerson({
         ) : (
           <TextField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         )}
-        {role === 'instructor' && <CoursePicker courses={courses} value={staffOf} onChange={setStaffOf} />}
+        {role === 'instructor' && (
+          <>
+            <SeniorCheck value={senior} onChange={setSenior} />
+            <CoursePicker courses={courses} value={staffOf} onChange={setStaffOf} />
+          </>
+        )}
         {role !== 'student' && <span className="field__hint">The ID is created automatically (e.g. {role === 'admin' ? `${adminPrefix}27AB01` : 'COA27AB01'}).</span>}
         {err && <div role="alert" className="auth__formerror">{err}</div>}
       </div>

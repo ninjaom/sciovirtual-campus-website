@@ -187,7 +187,10 @@ export function Dashboard() {
               <div key={s.id} className="person">
                 <Ava person={data.people.get(s.id)} size={36} />
                 <div className="person__text">
-                  <span className="person__name">{s.first_name} {s.last_name}</span>
+                  <span className="person__name">
+                    {s.first_name} {s.last_name}
+                    {data.people.get(s.id)?.senior && <span className="person__title">Senior Instructor</span>}
+                  </span>
                   {s.email && <a href={`mailto:${s.email}`} className="person__sub">{s.email}</a>}
                 </div>
               </div>

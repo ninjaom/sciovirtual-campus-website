@@ -9,6 +9,8 @@ export interface PersonCard {
   first: string
   last: string
   role: Role
+  /** Senior Instructor title (instructors only) */
+  senior: boolean
   initials: string
   avatarUrl: string | null
 }
@@ -21,9 +23,9 @@ export async function loadPeople(ids: (string | null | undefined)[]): Promise<Ma
   const want = [...new Set(ids.filter((x): x is string => !!x))]
   const out = new Map<string, PersonCard>()
   if (!want.length) return out
-  const rows: { id: string; first_name: string; last_name: string; role: Role; avatar_path: string | null }[] = []
+  const rows: { id: string; first_name: string; last_name: string; role: Role; avatar_path: string | null; senior: boolean | null }[] = []
   for (let i = 0; i < want.length; i += 150) {
-    const { data } = await supabase.from('people_directory').select('id, first_name, last_name, role, avatar_path').in('id', want.slice(i, i + 150))
+    const { data } = await supabase.from('people_directory').select('id, first_name, last_name, role, avatar_path, senior').in('id', want.slice(i, i + 150))
     rows.push(...((data ?? []) as typeof rows))
   }
   const urls = await avatarLinks(rows.map((r) => r.avatar_path))
@@ -34,6 +36,7 @@ export async function loadPeople(ids: (string | null | undefined)[]): Promise<Ma
       first: r.first_name,
       last: r.last_name,
       role: r.role,
+      senior: !!r.senior,
       initials: initials(r.first_name, r.last_name),
       avatarUrl: r.avatar_path ? urls.get(r.avatar_path) ?? null : null,
     })

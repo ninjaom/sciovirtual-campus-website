@@ -417,7 +417,7 @@ select tests.ok(public.admin_import_feedback('final',
 select tests.ok((select responses from public.feedback_results where course_id = '30000000-0000-0000-0000-00000000000a' and kind = 'final') = 3
   and (select camp_responses from public.feedback_results where course_id = '30000000-0000-0000-0000-00000000000a' and kind = 'final') = 5,
   'imported results are saved per course with the camp total');
-select public.admin_import_feedback('final', '[]', 0, 0, 'link');
+select public.admin_import_feedback('final', '[]', 0, 0, 'csv');
 select tests.ok(not exists (select 1 from public.feedback_results where kind = 'final'), 'importing again replaces the earlier results');
 select tests.ok((select count(*) from public.feedback_imports where kind = 'final') = 2, 'every import is kept in the history');
 -- Attendance fixes and codes are logged
@@ -433,6 +433,21 @@ update public.settings set leaderboard_state = 'live';
 select tests.ok(exists (select 1 from public.activity_log where kind = 'leaderboard' and old_value = 'Live' and new_value = 'Frozen'), 'leaderboard status changes are logged');
 select tests.as_postgres();
 delete from public.posts; delete from public.past_resources;
+
+-- Senior Instructor title
+select tests.as_user('00000000-0000-0000-0000-0000000000b1');
+select tests.refused($$update public.people set senior = true where id = '20000000-0000-0000-0000-0000000000b1'$$, 'instructors cannot make themselves Senior Instructor');
+select tests.as_user('00000000-0000-0000-0000-0000000000c1');
+select tests.refused($$update public.people set senior = true where id = '20000000-0000-0000-0000-0000000000c1'$$, 'students cannot give themselves the Senior Instructor title');
+select tests.as_user('00000000-0000-0000-0000-0000000000a1');
+update public.people set senior = true where id = '20000000-0000-0000-0000-0000000000b1';
+select tests.ok((select senior from public.people where id = '20000000-0000-0000-0000-0000000000b1'), 'admins can make an instructor Senior Instructor');
+select tests.ok(exists (select 1 from public.activity_log where kind = 'accounts' and field = 'Senior Instructor' and new_value = 'Yes'), 'Senior Instructor changes are logged');
+select tests.refused($$update public.people set senior = true where id = '20000000-0000-0000-0000-0000000000c1'$$, 'only instructor accounts can be Senior Instructor');
+select tests.as_user('00000000-0000-0000-0000-0000000000c1');
+select tests.ok((select senior from public.people_directory where id = '20000000-0000-0000-0000-0000000000b1'), 'students can see their instructor is a Senior Instructor');
+select tests.as_postgres();
+update public.people set senior = false where id = '20000000-0000-0000-0000-0000000000b1';
 
 -- ---------------------------------------------------------------------
 -- First stress test: saved leaderboard copy and slimmer leaderboard
