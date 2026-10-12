@@ -45,7 +45,7 @@ export function Courses() {
       const [courses, instructors] = await Promise.all([
         supabase
           .from('courses')
-          .select('id, short_code, name, time_slot, days, zoom_join_url, archived, course_staff(person_id), enrollments(count), course_zoom_hosts(host_email, host_password), grade_items(id)')
+          .select('id, short_code, name, time_slot, days, zoom_join_url, archived, course_staff(person_id), enrollments(count), course_zoom_hosts(host_email, host_password), grade_items!grade_items_course_id_fkey(id)')
           .eq('event_id', eventId)
           .order('sort')
           .order('name'),
