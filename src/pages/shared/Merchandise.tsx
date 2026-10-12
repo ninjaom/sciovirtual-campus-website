@@ -1,3 +1,4 @@
+import { signFiles } from '../../lib/files'
 import { supabase } from '../../lib/supabase'
 import { must, useLoad } from '../../lib/useLoad'
 import { useCurrentEvent } from '../../lib/useEvent'
@@ -10,6 +11,15 @@ interface Item {
   name: string
   credit_cost: number
   image_path: string | null
+}
+
+/** An item's picture, or the placeholder glyph when there isn't one. */
+export function ItemImage({ url, name }: { url?: string | null; name: string }) {
+  return (
+    <div className="merchitem__img">
+      {url ? <img src={url} alt={name} loading="lazy" decoding="async" /> : <ImageGlyph />}
+    </div>
+  )
 }
 
 function ImageGlyph() {
@@ -34,8 +44,10 @@ export function StudentMerchandise() {
       supabase.rpc('get_my_standing'),
     ])
     const st = must(standing) as { state: string; total: number | null } | null
+    const list = must(items) as Item[]
     return {
-      items: must(items) as Item[],
+      items: list,
+      urls: await signFiles('merch', list.map((i) => i.image_path)),
       // Points stay hidden while the leaderboard is hidden.
       points: st && st.state !== 'hidden' ? Math.round(Number(st.total ?? 0)) : null,
     }
@@ -72,9 +84,7 @@ export function StudentMerchandise() {
                 const ok = pts != null && pts >= it.credit_cost
                 return (
                   <article key={it.id} className="merchitem">
-                    <div className="merchitem__img">
-                      <ImageGlyph />
-                    </div>
+                    <ItemImage url={it.image_path ? data.urls.get(it.image_path) : null} name={it.name} />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       <h2 className="merchitem__name">{it.name}</h2>
                       <span className="merchitem__cost">{it.credit_cost.toLocaleString('en-US')} points</span>
@@ -137,7 +147,8 @@ export function StaffMerchandise() {
   const s = ev.data?.settings ?? null
   const { data } = useLoad(async () => {
     if (!eventId) return null
-    return must(await supabase.from('merch_items').select('id, name, credit_cost, image_path').eq('event_id', eventId).eq('visible', true).order('sort').order('credit_cost')) as Item[]
+    const list = must(await supabase.from('merch_items').select('id, name, credit_cost, image_path').eq('event_id', eventId).eq('visible', true).order('sort').order('credit_cost')) as Item[]
+    return { items: list, urls: await signFiles('merch', list.map((i) => i.image_path)) }
   }, [eventId])
 
   const rec = s?.merch_recommendation_form_url
@@ -178,11 +189,9 @@ export function StaffMerchandise() {
             </div>
             <div className="merchgrid">
               {!data && <Skeleton height={240} />}
-              {data?.map((it) => (
+              {data?.items.map((it) => (
                 <article key={it.id} className="merchitem">
-                  <div className="merchitem__img">
-                    <ImageGlyph />
-                  </div>
+                  <ItemImage url={it.image_path ? data.urls.get(it.image_path) : null} name={it.name} />
                   <h2 className="merchitem__name">{it.name}</h2>
                 </article>
               ))}

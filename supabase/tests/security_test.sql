@@ -280,7 +280,7 @@ select tests.refused($$select public.admin_set_course_override('30000000-0000-00
 
 select tests.as_user('00000000-0000-0000-0000-0000000000a1');
 insert into public.quick_links (event_id, label, page, audience) values (public.current_event(), 'Learn', 'learn', 'both');
-select tests.ok(exists (select 1 from public.activity_log where action = 'Entered points · Event 1 · Students'), 'entering points is logged');
+select tests.ok(exists (select 1 from public.activity_log where kind = 'points' and target like 'Event 1 · %' and field = 'Points' and new_value is not null), 'entering points is logged, one row per change');
 select tests.ok(public.next_person_code('COA', 'Instructor', 'A') = 'COA27IA02', 'instructor IDs: code + year + initials + next number');
 select tests.ok(public.next_person_code('ADM', 'Om', 'Loke') = 'ADM27OL01', 'admin IDs use the prefix');
 select tests.refused($$delete from public.courses where id = '30000000-0000-0000-0000-00000000000a'$$, 'a course with students cannot be deleted');
@@ -374,6 +374,65 @@ update public.teams set takeover_override = 5;
 select tests.as_postgres();
 select tests.ok((select count(*) from public.teams where takeover_override is not null) = 0, 'students cannot override takeovers');
 update public.settings set course_top_n = 10;
+
+-- ---------------------------------------------------------------------
+-- Phase 6: content, imports and edit logs
+-- ---------------------------------------------------------------------
+select tests.as_postgres();
+insert into public.posts (id, slug, title, type, published) values
+  ('90000000-0000-0000-0000-000000000001', 'guide-a', 'Guide A', 'guide', true),
+  ('90000000-0000-0000-0000-000000000002', 'draft-b', 'Draft B', 'post', false);
+insert into public.past_resources (year, course_name, url, published) values
+  (2026, 'Course A', 'https://example.com/a', true), (2026, 'Course Draft', 'https://example.com/d', false);
+insert into storage.objects (bucket_id, name) values ('camp-files', 'updates/x.pdf'), ('merch', 'items/a.webp'), ('learn-files', 'guides/a.pdf');
+
+select tests.as_user('00000000-0000-0000-0000-0000000000c1');
+select tests.ok((select count(*) from public.posts) = 1, 'students see published Learn items only');
+select tests.ok((select count(*) from public.past_resources) = 1, 'students see published Past Resources only');
+select tests.ok((select count(*) from storage.objects where bucket_id in ('camp-files', 'merch', 'learn-files')) = 3, 'signed-in students open camp files, merch pictures and Learn files');
+select tests.refused($$insert into storage.objects (bucket_id, name) values ('camp-files', 'updates/mine.pdf')$$, 'students cannot add camp files');
+select tests.refused($$insert into storage.objects (bucket_id, name) values ('learn-files', 'guides/mine.pdf')$$, 'students cannot add Learn files');
+select tests.refused($$insert into public.posts (slug, title, type) values ('x', 'x', 'post')$$, 'students cannot write Learn posts');
+select tests.refused($$insert into public.past_resources (year, course_name, url) values (2026, 'x', 'https://x')$$, 'students cannot add Past Resources');
+select tests.ok((select count(*) from public.feedback_imports) = 0, 'students cannot read the feedback import history');
+select tests.refused($$select public.admin_import_feedback('final', '[]', 0, 0, 'csv')$$, 'students cannot import feedback');
+select tests.ok((select count(*) from public.activity_log) = 0, 'students cannot read Edit Logs');
+
+select tests.as_user('00000000-0000-0000-0000-0000000000b1');
+select tests.refused($$insert into storage.objects (bucket_id, name) values ('merch', 'items/mine.webp')$$, 'instructors cannot add merch pictures');
+select tests.refused($$select public.admin_import_feedback('final', '[]', 0, 0, 'csv')$$, 'instructors cannot import feedback');
+select tests.ok((select count(*) from public.activity_log) = 0, 'instructors cannot read Edit Logs');
+select tests.refused($$insert into public.attendance (session_id, person_id) select id, '20000000-0000-0000-0000-0000000000c2' from public.sessions where course_id = '30000000-0000-0000-0000-00000000000a' and number = 3$$, 'instructors cannot fix attendance');
+
+select tests.as_user('00000000-0000-0000-0000-0000000000f1');
+select tests.ok((select count(*) from storage.objects where bucket_id in ('camp-files', 'merch', 'learn-files')) = 0, 'signed in without a Campus account sees no camp files');
+select tests.ok((select count(*) from public.posts) = 0, 'signed in without a Campus account sees no Learn items');
+
+select tests.as_user('00000000-0000-0000-0000-0000000000a1');
+select tests.ok((select count(*) from public.posts) = 2 and (select count(*) from public.past_resources) = 2, 'admins see drafts too');
+insert into storage.objects (bucket_id, name) values ('camp-files', 'updates/admin.pdf');
+select tests.ok(public.admin_import_feedback('final',
+  '[{"course_id": "30000000-0000-0000-0000-00000000000a", "questions": [{"question": "Q", "average": 8, "camp_average": 7.5}], "comments": [], "responses": 3, "class_rank": 1}]', 5, 1, 'csv') = 1,
+  'admins import feedback');
+select tests.ok((select responses from public.feedback_results where course_id = '30000000-0000-0000-0000-00000000000a' and kind = 'final') = 3
+  and (select camp_responses from public.feedback_results where course_id = '30000000-0000-0000-0000-00000000000a' and kind = 'final') = 5,
+  'imported results are saved per course with the camp total');
+select public.admin_import_feedback('final', '[]', 0, 0, 'link');
+select tests.ok(not exists (select 1 from public.feedback_results where kind = 'final'), 'importing again replaces the earlier results');
+select tests.ok((select count(*) from public.feedback_imports where kind = 'final') = 2, 'every import is kept in the history');
+-- Attendance fixes and codes are logged
+insert into public.attendance (session_id, person_id, fixed_by)
+select id, '20000000-0000-0000-0000-0000000000c2', public.me() from public.sessions where course_id = '30000000-0000-0000-0000-00000000000a' and number = 3;
+select tests.ok(exists (select 1 from public.activity_log where kind = 'attendance' and field = 'S3' and old_value = 'Missed' and new_value = 'Present'), 'attendance fixes are logged');
+update public.attendance_codes set code = 'PEAR' where code = 'APPLE';
+select tests.ok(exists (select 1 from public.activity_log where kind = 'attendance' and field = 'S1 code' and old_value = 'APPLE' and new_value = 'PEAR'), 'class code changes are logged');
+select public.admin_new_setup_code('20000000-0000-0000-0000-0000000000c1');
+select tests.ok(exists (select 1 from public.activity_log where kind = 'accounts' and target = '27AA0001' and field = 'Password' and new_value = 'Reset'), 'password resets are logged');
+update public.settings set leaderboard_state = 'frozen';
+update public.settings set leaderboard_state = 'live';
+select tests.ok(exists (select 1 from public.activity_log where kind = 'leaderboard' and old_value = 'Live' and new_value = 'Frozen'), 'leaderboard status changes are logged');
+select tests.as_postgres();
+delete from public.posts; delete from public.past_resources;
 
 -- ---------------------------------------------------------------------
 -- First stress test: saved leaderboard copy and slimmer leaderboard

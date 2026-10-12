@@ -1,0 +1,348 @@
+/* Phase 6 admin pages: Camp Announcements, Merchandise, Learn & Past
+   Resources, Attendance Fixes, Feedback Imports, Edit Logs, Analytics. */
+
+.p6form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.p6head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.p6head h2 {
+  font-size: 20px;
+}
+.p6sub {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.p6muted,
+.atable td.p6muted {
+  color: var(--text-muted);
+}
+.p6empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 20px !important;
+}
+.atable .p6right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.p6nowrap {
+  white-space: nowrap;
+}
+.p6btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.p6two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+.p6select {
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1.5px solid var(--border-input);
+  border-radius: var(--r-pill);
+  padding: 9px 16px;
+  min-height: 44px;
+  cursor: pointer;
+  max-width: 100%;
+}
+.p6select--soft {
+  background: var(--bg);
+}
+.p6select--course {
+  border-radius: var(--r-row);
+  font-weight: 600;
+  min-width: 200px;
+}
+.p6hint {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blue-ink);
+}
+.p6filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.p6filters .search {
+  flex: 1 1 220px;
+  max-width: 300px;
+}
+
+/* Camp Announcements */
+.p6bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.p6bar__tools {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.p6bar__tools .btn svg {
+  margin-right: 4px;
+}
+.p6check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  margin-left: 6px;
+  min-height: 40px;
+}
+.p6check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--blue);
+}
+.p6post {
+  padding-left: 26px;
+  padding-right: 26px;
+}
+.p6tool {
+  min-height: 40px;
+  padding: 9px 16px;
+  font-size: 13px;
+}
+.p6update__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.p6actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Merchandise */
+.p6item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.p6thumb {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-tile);
+  background: var(--lavender);
+  overflow: hidden;
+}
+.p6thumb img,
+.p6pic__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.p6pic {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.p6pic__img {
+  flex: none;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--r-row);
+  background: var(--lavender);
+  overflow: hidden;
+}
+.p6pic__btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Attendance Fixes */
+.p6codes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+.p6code {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.p6code__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.p6code__input {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  border: 1.5px solid var(--border-input);
+  border-radius: var(--r-row);
+  padding: 9px 12px;
+  min-height: 44px;
+  width: 100%;
+}
+.p6code__input:focus {
+  outline: 2px solid var(--blue-strong);
+  outline-offset: 1px;
+}
+.p6attbtn {
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 120ms var(--ease-out);
+}
+.p6attbtn:active {
+  transform: scale(0.92);
+}
+.p6attbtn:focus-visible {
+  outline: 2px solid var(--blue-strong);
+  outline-offset: 2px;
+}
+
+/* Feedback Imports */
+.p6review {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-body);
+}
+
+/* Edit Logs */
+.p6log td {
+  vertical-align: middle;
+}
+.p6who {
+  font-weight: 600;
+  color: var(--text);
+}
+.p6old {
+  color: var(--text-muted);
+}
+
+/* Analytics */
+.p6stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+.p6stat {
+  background: var(--surface);
+  border-radius: var(--r-card);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.p6stat__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.p6stat__value {
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.p6bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 220px;
+  overflow-x: auto;
+  padding-top: 34px;
+}
+.p6bars__col {
+  position: relative;
+  flex: 1 0 22px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  outline: none;
+}
+.p6bars__track {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--border);
+}
+.p6bars__bar {
+  width: 100%;
+  max-width: 28px;
+  margin: 0 auto;
+  background: var(--blue);
+  border-radius: 4px 4px 0 0;
+  transition: background var(--dur-fast) ease-out;
+}
+.p6bars__x {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.p6bars__tip {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-tile);
+  padding: 4px 8px;
+  box-shadow: 0 4px 12px rgba(32, 31, 86, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) ease-out;
+  z-index: 2;
+}
+.p6bars__col:hover .p6bars__tip,
+.p6bars__col:focus-visible .p6bars__tip {
+  opacity: 1;
+}
+.p6bars__col:hover .p6bars__bar,
+.p6bars__col:focus-visible .p6bars__bar {
+  background: var(--blue-ink);
+}
+.p6bars__col:focus-visible .p6bars__track {
+  outline: 2px solid var(--blue-strong);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .p6bars__tip,
+  .p6bars__bar,
+  .p6attbtn {
+    transition: none;
+  }
+}

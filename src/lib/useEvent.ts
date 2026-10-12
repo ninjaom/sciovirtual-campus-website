@@ -20,6 +20,8 @@ export interface Settings {
   merch_student_form_url: string | null
   merch_instructor_form_url: string | null
   merch_recommendation_form_url: string | null
+  feedback_midpoint_url: string | null
+  feedback_final_url: string | null
 }
 
 export interface CampEvent {

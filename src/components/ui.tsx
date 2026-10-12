@@ -8,6 +8,7 @@ import {
   type CSSProperties,
   type InputHTMLAttributes,
   type ReactNode,
+  type Ref,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react'
@@ -144,12 +145,12 @@ export function SelectField({ label, hint, error, id, children, fieldStyle, ...r
   )
 }
 
-export function TextAreaField({ label, hint, error, id, fieldStyle, ...rest }: FieldBits & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function TextAreaField({ label, hint, error, id, fieldStyle, ref, ...rest }: FieldBits & TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: Ref<HTMLTextAreaElement> }) {
   const auto = useId()
   const fid = id ?? auto
   return (
     <FieldWrap id={fid} label={label} hint={hint} error={error} fieldStyle={fieldStyle}>
-      <textarea id={fid} className={'input input--area' + (error ? ' is-invalid' : '')} aria-invalid={error ? true : undefined} {...rest} />
+      <textarea ref={ref} id={fid} className={'input input--area' + (error ? ' is-invalid' : '')} aria-invalid={error ? true : undefined} {...rest} />
     </FieldWrap>
   )
 }
@@ -278,6 +279,7 @@ export function Banner({
   children,
   plain,
   narrow,
+  className,
 }: {
   eyebrow?: ReactNode
   title: ReactNode
@@ -288,9 +290,10 @@ export function Banner({
   plain?: boolean
   /** 1040px wide content (Account). */
   narrow?: boolean
+  className?: string
 }) {
   return (
-    <section className={'banner' + (plain ? ' banner--plain' : '') + (narrow ? ' banner--narrow' : '')}>
+    <section className={'banner' + (plain ? ' banner--plain' : '') + (narrow ? ' banner--narrow' : '') + (className ? ' ' + className : '')}>
       <span className="banner__c1" aria-hidden="true" />
       {!plain && <span className="banner__c2" aria-hidden="true" />}
       <div className="banner__inner">

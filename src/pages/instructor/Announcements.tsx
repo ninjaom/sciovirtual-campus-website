@@ -22,14 +22,14 @@ interface Post {
 const MAX_FILE = 10 * 1024 * 1024
 const BUCKET = 'course-files'
 
-function Paperclip() {
+export function Paperclip() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M21 12.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l9.2-9.2a3.7 3.7 0 0 1 5.2 5.2l-9.2 9.2a1.8 1.8 0 0 1-2.6-2.6l8.5-8.5" />
     </svg>
   )
 }
-function LinkGlyph() {
+export function LinkGlyph() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" />
@@ -37,7 +37,7 @@ function LinkGlyph() {
     </svg>
   )
 }
-function XGlyph() {
+export function XGlyph() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
       <path d="M6 6l12 12M18 6L6 18" />
@@ -259,7 +259,7 @@ export function Announcements() {
   )
 }
 
-function AddLink({ origin, onClose, onAdd }: { origin: HTMLElement | null; onClose: () => void; onAdd: (l: { url: string; label: string }) => void }) {
+export function AddLink({ origin, onClose, onAdd }: { origin: HTMLElement | null; onClose: () => void; onAdd: (l: { url: string; label: string }) => void }) {
   const [url, setUrl] = useState('')
   const [label, setLabel] = useState('')
   const [err, setErr] = useState<string | null>(null)

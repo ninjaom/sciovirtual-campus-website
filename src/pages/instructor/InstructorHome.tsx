@@ -5,6 +5,7 @@ import { must, useLoad } from '../../lib/useLoad'
 import { campDayLabel, useCurrentEvent } from '../../lib/useEvent'
 import { classDates, currentSession, dayDate, sessionState, when } from '../../lib/camp'
 import { loadPeople } from '../../lib/people'
+import { signFiles } from '../../lib/files'
 import { Banner, ButtonA, ButtonLink, Card, EmptyState, Skeleton } from '../../components/ui'
 import { Ava, FileIcon, LinkIcon, type Attachment } from './bits'
 import './instructor.css'
@@ -56,7 +57,8 @@ export function QuickLinkRow({ link }: { link: QuickLink }) {
   )
 }
 
-export function UpdateCard({ u, author }: { u: Update; author?: Parameters<typeof Ava>[0]['person'] }) {
+/** A Camp Update. Files open through short-lived links (`urls`, by file path). */
+export function UpdateCard({ u, author, urls }: { u: Update; author?: Parameters<typeof Ava>[0]['person']; urls?: Map<string, string> }) {
   return (
     <article className={'update' + (u.pinned ? ' is-pinned' : '')}>
       <div className="update__head">
@@ -84,6 +86,11 @@ export function UpdateCard({ u, author }: { u: Update; author?: Parameters<typeo
             <LinkIcon />
             {a.label || a.url}
           </a>
+        ) : urls?.get(a.path) ? (
+          <a key={i} href={urls.get(a.path)} target="_blank" rel="noreferrer" className="filechip">
+            <FileIcon />
+            {a.name}
+          </a>
         ) : (
           <span key={i} className="filechip">
             <FileIcon />
@@ -93,6 +100,11 @@ export function UpdateCard({ u, author }: { u: Update; author?: Parameters<typeo
       )}
     </article>
   )
+}
+
+/** Links for the files attached to Camp Updates (private bucket). */
+export function campFileLinks(updates: Update[]) {
+  return signFiles('camp-files', updates.flatMap((u) => u.attachments.filter((a) => a.type === 'file').map((a) => (a as { path: string }).path)))
 }
 
 export function InstructorHome() {
@@ -116,6 +128,7 @@ export function InstructorHome() {
     return {
       updates: u,
       authors: await loadPeople(u.map((x) => x.author_id)),
+      files: await campFileLinks(u),
       reminders: must(reminders) as { id: string; body: string }[],
       links: must(links) as QuickLink[],
       courses: must(courses) as unknown as MyCourse[],
@@ -142,7 +155,7 @@ export function InstructorHome() {
         <div className="ihome__main">
           <h2>Camp Updates</h2>
           {!data && <Skeleton height={160} />}
-          {data?.updates.map((u) => <UpdateCard key={u.id} u={u} author={u.author_id ? data.authors.get(u.author_id) : null} />)}
+          {data?.updates.map((u) => <UpdateCard key={u.id} u={u} author={u.author_id ? data.authors.get(u.author_id) : null} urls={data.files} />)}
           {data && data.updates.length === 0 && <EmptyState title="No camp updates yet" body="Check back soon" />}
         </div>
 

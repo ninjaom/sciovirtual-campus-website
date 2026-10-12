@@ -7,7 +7,7 @@ import { campDayLabel, useCurrentEvent } from '../../lib/useEvent'
 import { classDates, sessionState, slotStart, when } from '../../lib/camp'
 import { loadPeople, type PersonCard } from '../../lib/people'
 import { Banner, ButtonA, ButtonLink, Card, EmptyState, Skeleton } from '../../components/ui'
-import { QuickLinkRow, UpdateCard, type QuickLink, type Update } from '../instructor/InstructorHome'
+import { QuickLinkRow, UpdateCard, campFileLinks, type QuickLink, type Update } from '../instructor/InstructorHome'
 import '../instructor/instructor.css'
 import './student.css'
 
@@ -111,6 +111,7 @@ export function StudentHome() {
       links: must(links) as QuickLink[],
       feed: f,
       people: await loadPeople([...u.map((x) => x.author_id), ...f.map((x) => x.author_id)]),
+      files: await campFileLinks(u),
       courses: must(courses) as unknown as MyCourse[],
       standing: must(standing) as Standing | null,
     }
@@ -151,7 +152,7 @@ export function StudentHome() {
           {!data && <Skeleton height={160} />}
           {data && data.updates.length > 0 && (
             <ScrollFade className="updscroll" label="Camp Updates">
-              {data.updates.map((u) => <UpdateCard key={u.id} u={u} author={u.author_id ? data.people.get(u.author_id) : null} />)}
+              {data.updates.map((u) => <UpdateCard key={u.id} u={u} author={u.author_id ? data.people.get(u.author_id) : null} urls={data.files} />)}
             </ScrollFade>
           )}
           {data && data.updates.length === 0 && <EmptyState title="No camp updates yet" body="Check back soon" />}

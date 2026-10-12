@@ -272,6 +272,36 @@ where p.role = 'student';
 update public.settings s set gtky_imported_at = now()
 from public.events e where e.id = s.event_id and e.is_current;
 
+-- ---------------------------------------------------------------------
+-- Sample Learn pages and Past Resources (placeholders until the Notion
+-- export is moved in; real items are left alone)
+-- ---------------------------------------------------------------------
+delete from public.posts where slug like 'sample-%';
+insert into public.posts (slug, title, type, section, subject, body, author_name, archived, published, sort, created_at) values
+  ('sample-intro', 'Introduction to the Competition', 'guide', 'Getting Started', null, E'## Overview\n\nSection text\n\n## How events work\n\nSection text', null, false, true, 1, now()),
+  ('sample-cheat-sheets', 'Make Efficient Cheat Sheets', 'guide', 'Getting Started', null, E'## Overview\n\nSection text', null, false, true, 2, now()),
+  ('sample-disease-detectives', 'Disease Detectives', 'guide', 'Biology Events', 'bio',
+   E'```faculty\nCourse content was made from ScioVirtual Disease Detectives and Public Health lead faculty, including:\nInstructor A | Instructor bio\nInstructor B | Instructor bio\nInstructor C | Instructor bio\n```\n\nThe official Science Olympiad website ([soinc.org](https://www.soinc.org)) is always a good starting point for studying for any event.\n\n## Introduction to Epidemiology\n\nSection text\n\n## Outbreak Investigations\n\nSection text\n\n## Analytical Epidemiology\n\n[Public Health - Lesson 5](https://docs.google.com/presentation/d/example) [day 2 prez](https://docs.google.com/presentation/d/example)\n\n## Practice!\n\nAs always, most important part of almost all the events is to practice.\n\n[Epidemiology Worksheet](https://docs.google.com/document/d/example) [Disease Detectives Jeopardy](https://docs.google.com/presentation/d/example) [Review Worksheet](https://docs.google.com/document/d/example)',
+   null, false, true, 1, now()),
+  ('sample-anatomy', 'Anatomy & Physiology', 'guide', 'Biology Events', 'bio', E'## Overview\n\nSection text', null, false, true, 2, now()),
+  ('sample-ornithology', 'Ornithology (2020-2022)', 'guide', 'Biology Events', 'bio', E'## Overview\n\nSection text', null, true, true, 9, now()),
+  ('sample-dynamic-planet', 'Dynamic Planet', 'guide', 'Earth Events', 'earth', E'## Overview\n\nSection text', null, false, true, 1, now()),
+  ('sample-codebusters', 'Codebusters', 'guide', 'Inquiry Events', 'inq', E'## Overview\n\nSection text', null, false, true, 1, now()),
+  ('sample-post-1', 'Post title', 'post', null, null, E'Post text', 'Director A', false, true, 0, now() - interval '2 days'),
+  ('sample-post-2', 'Post title', 'post', null, null, E'Post text', 'Instructor B', false, true, 0, now() - interval '9 days'),
+  ('sample-draft', 'Draft post', 'post', null, null, E'Not published yet', null, false, false, 0, now());
+
+delete from public.past_resources where url like 'https://docs.google.com/presentation/d/example%';
+insert into public.past_resources (year, course_name, subject, url) values
+  (2026, 'Disease Detectives: Advanced', 'bio', 'https://docs.google.com/presentation/d/example-1'),
+  (2026, 'Anatomy & Physiology: Intro', 'bio', 'https://docs.google.com/presentation/d/example-2'),
+  (2026, 'Codebusters: Intro', 'inq', 'https://docs.google.com/presentation/d/example-3'),
+  (2026, 'Dynamic Planet', 'earth', 'https://docs.google.com/presentation/d/example-4'),
+  (2025, 'Forensics', 'chem', 'https://docs.google.com/presentation/d/example-5'),
+  (2025, 'Meteorology', 'earth', 'https://docs.google.com/presentation/d/example-6'),
+  (2024, 'Rocks & Minerals', 'earth', 'https://docs.google.com/presentation/d/example-7'),
+  (2022, 'Disease Detectives', 'bio', 'https://docs.google.com/presentation/d/example-8.pdf');
+
 commit;
 
 -- Setup codes for accounts that haven't signed up yet (admins and

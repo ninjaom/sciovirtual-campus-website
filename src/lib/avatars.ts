@@ -112,3 +112,27 @@ function toBlob(canvas: HTMLCanvasElement, type: string, quality: number) {
 }
 
 export const photoExt = (blob: Blob) => (blob.type === 'image/webp' ? 'webp' : 'jpg')
+
+/**
+ * Pictures other than profile photos (merch items, Learn pictures): the
+ * longest side is shrunk to `maxSide` (never enlarged), shape kept.
+ */
+export async function shrinkImage(file: File, maxSide = 900): Promise<Blob> {
+  const bitmap = await loadBitmap(file)
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
+  const w = Math.max(1, Math.round(bitmap.width * scale))
+  const h = Math.max(1, Math.round(bitmap.height * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('no canvas')
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(bitmap, 0, 0, w, h)
+  if ('close' in bitmap) bitmap.close()
+  const webp = await toBlob(canvas, 'image/webp', 0.85)
+  if (webp && webp.type === 'image/webp') return webp
+  const jpeg = await toBlob(canvas, 'image/jpeg', 0.85)
+  if (!jpeg) throw new Error('could not encode picture')
+  return jpeg
+}
