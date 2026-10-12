@@ -45,7 +45,14 @@ stop it early.
 If a run was cut off before cleaning up (computer slept, terminal closed),
 run `node stress-test/load.mjs restore`.
 
-Options: `--minutes 5`, `--students 200`, `--instructors 31`, `--admins 5`.
+Options: `--minutes 5`, `--students 200`, `--instructors 31`, `--admins 5`,
+`--connections 100` (how many connections this computer may open at once).
+
+The summary splits each request's time into waiting on this computer and
+the server's part, sorts errors by kind (this computer/network vs. the
+server), and includes a probe: one tiny request every 5 seconds on its own
+connection, which shows how quickly the server answers when nothing on
+this computer is in the way.
 
 ## Good to know
 

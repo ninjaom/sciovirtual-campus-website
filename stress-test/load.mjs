@@ -12,6 +12,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import http from 'node:http'
+import https from 'node:https'
+import zlib from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 
 const DIR = path.dirname(fileURLToPath(import.meta.url))
@@ -73,13 +76,31 @@ const flag = (name, dflt) => {
 // ---------------------------------------------------------------------
 // Measuring every request
 // ---------------------------------------------------------------------
+// One computer stands in for hundreds of people, so its own limits could be
+// mistaken for the server's. Requests share a fixed set of connections
+// (macOS allows a program only ~256 open files by default), and each
+// request's time is split into "waiting on this computer for a free
+// connection" and "server" time. A separate probe asks the server one tiny
+// question every 5 seconds on its own connection, never queued.
+const CONNECTIONS = flag('connections', config.connections ?? 100)
+const agentOpts = { keepAlive: true, maxSockets: CONNECTIONS, maxFreeSockets: CONNECTIONS }
+const lib = API.startsWith('https') ? https : http
+const agent = new lib.Agent(agentOpts)
+const probeAgent = new lib.Agent({ keepAlive: true, maxSockets: 1 })
+
 const stats = new Map() // label -> { n, errors, ms[], bytes }
 const errorSamples = []
+const errorKinds = new Map() // kind -> count
+const queuedMs = []
+const serverMs = []
+const probeMs = []
+let probeErrors = 0
 let inFlight = 0
 let totalBytes = 0
+let wireBytes = 0
 const now = () => performance.now()
 
-function record(label, ms, bytes, ok, detail) {
+function record(label, ms, bytes, ok, detail, kind) {
   let s = stats.get(label)
   if (!s) stats.set(label, (s = { n: 0, errors: 0, ms: [], bytes: 0 }))
   s.n++
@@ -88,6 +109,7 @@ function record(label, ms, bytes, ok, detail) {
   totalBytes += bytes
   if (!ok) {
     s.errors++
+    errorKinds.set(kind, (errorKinds.get(kind) ?? 0) + 1)
     if (errorSamples.length < 15) errorSamples.push(`${label}: ${detail}`)
   }
 }
@@ -97,32 +119,90 @@ const pct = (arr, p) => {
   return a[Math.min(a.length - 1, Math.floor((p / 100) * a.length))]
 }
 
+/** Low-level request: resolves { status, text, queued, server } or rejects. */
+function send(method, url, headers, body, useAgent = agent) {
+  return new Promise((resolve, reject) => {
+    const t0 = now()
+    let tSocket = null
+    const req = lib.request(url, { method, headers: { ...headers, 'Accept-Encoding': 'gzip' }, agent: useAgent })
+    const timer = setTimeout(() => req.destroy(Object.assign(new Error('timed out after 30 s'), { code: 'TIMEOUT' })), 30000)
+    req.on('socket', () => {
+      tSocket = now()
+    })
+    req.on('error', (e) => {
+      clearTimeout(timer)
+      e.queued = (tSocket ?? now()) - t0
+      e.waitedForConnection = tSocket == null
+      reject(e)
+    })
+    req.on('response', (res) => {
+      const chunks = []
+      res.on('data', (c) => chunks.push(c))
+      res.on('error', (e) => {
+        clearTimeout(timer)
+        reject(e)
+      })
+      res.on('end', () => {
+        clearTimeout(timer)
+        const raw = Buffer.concat(chunks)
+        wireBytes += raw.length
+        let buf = raw
+        try {
+          if (res.headers['content-encoding'] === 'gzip') buf = zlib.gunzipSync(raw)
+        } catch {
+          /* leave as is */
+        }
+        const end = now()
+        resolve({ status: res.statusCode, ok: res.statusCode >= 200 && res.statusCode < 300, text: buf.toString('utf8'), queued: (tSocket ?? t0) - t0, server: end - (tSocket ?? t0) })
+      })
+    })
+    if (body !== undefined) req.write(body)
+    req.end()
+  })
+}
+
 /** One request to the database API as an account, measured. */
 async function api(acc, method, pathAndQuery, { body, label, single, prefer, head } = {}) {
   const headers = { apikey: KEY, Authorization: `Bearer ${acc.token}`, Accept: single ? 'application/vnd.pgrst.object+json' : 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (prefer) headers.Prefer = prefer
+  const name = label || method + ' ' + pathAndQuery.split('?')[0]
   const t0 = now()
   inFlight++
   try {
-    const res = await fetch(API + '/rest/v1/' + pathAndQuery, {
-      method: head ? 'HEAD' : method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(30000),
-    })
-    const text = head ? '' : await res.text()
-    const ms = now() - t0
-    const name = label || method + ' ' + pathAndQuery.split('?')[0]
-    record(name, ms, Buffer.byteLength(text), res.ok, `${res.status} ${text.slice(0, 160)}`)
-    if (!res.ok) return null
-    return text ? JSON.parse(text) : null
+    const r = await send(head ? 'HEAD' : method, API + '/rest/v1/' + pathAndQuery, headers, body === undefined ? undefined : JSON.stringify(body))
+    queuedMs.push(r.queued)
+    serverMs.push(r.server)
+    record(name, now() - t0, Buffer.byteLength(r.text), r.ok, `HTTP ${r.status} ${r.text.slice(0, 160)}`, `server answered HTTP ${r.status}`)
+    if (!r.ok) return null
+    return r.text ? JSON.parse(r.text) : null
   } catch (e) {
-    record(label || method + ' ' + pathAndQuery.split('?')[0], now() - t0, 0, false, e.name === 'TimeoutError' ? 'timed out after 30 s' : e.message)
+    const kind =
+      e.code === 'TIMEOUT'
+        ? e.waitedForConnection
+          ? 'timed out while waiting on this computer for a free connection'
+          : 'timed out waiting for the server'
+        : `network error on this computer/connection (${e.code ?? e.message})`
+    record(name, now() - t0, 0, false, kind, kind)
     return null
   } finally {
     inFlight--
   }
+}
+
+/** The probe: one tiny request every 5 s on its own connection. */
+function startProbe(acc) {
+  const t = setInterval(async () => {
+    const t0 = now()
+    try {
+      const r = await send('GET', `${API}/rest/v1/events?select=id&is_current=eq.true`, { apikey: KEY, Authorization: `Bearer ${acc.token}`, Accept: 'application/json' }, undefined, probeAgent)
+      if (r.ok) probeMs.push(now() - t0)
+      else probeErrors++
+    } catch {
+      probeErrors++
+    }
+  }, 5000)
+  return () => clearInterval(t)
 }
 const rpc = (acc, fn, label) => api(acc, 'POST', 'rpc/' + fn, { body: {}, label: label || 'rpc ' + fn })
 const ids = (list) => `(${[...new Set(list)].join(',')})`
@@ -483,7 +563,10 @@ async function run() {
   const ev = await api(accounts[0], 'GET', 'events?select=name&is_current=eq.true', { label: 'safety check' })
   if (ev?.[0]?.name !== TEST_EVENT) stop(`The current event is "${ev?.[0]?.name ?? 'unknown'}", not "${TEST_EVENT}". Stopping.`)
   stats.clear()
-  totalBytes = 0
+  errorKinds.clear()
+  errorSamples.length = queuedMs.length = serverMs.length = probeMs.length = 0
+  totalBytes = wireBytes = probeErrors = 0
+  const stopProbe = startProbe(byRole('admin')[0] ?? accounts[0])
 
   // Leftovers from a run that didn't finish
   if (Object.keys(changes.grades).length || Object.keys(changes.points).length) await restore(accounts)
@@ -512,7 +595,8 @@ async function run() {
     const left = Math.max(0, Math.round((end - Date.now()) / 1000))
     console.log(
       `${new Date().toLocaleTimeString()}  ${String(Math.round((n - last.n) / secs)).padStart(4)} requests/s  ` +
-        `slowest recent ${(pct(recent, 95) / 1000).toFixed(2)} s (95%)  waiting ${String(inFlight).padStart(3)}  ` +
+        `slowest recent ${(pct(recent, 95) / 1000).toFixed(2)} s (95%), server part ${(pct(serverMs.slice(-300), 95) / 1000).toFixed(2)} s  ` +
+        `probe ${probeMs.length ? (probeMs[probeMs.length - 1] / 1000).toFixed(2) + ' s' : '–'}  waiting ${String(inFlight).padStart(3)}  ` +
         `errors ${err - last.err}  ·  ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')} left`,
     )
     last = { n, err, t: Date.now() }
@@ -530,6 +614,7 @@ async function run() {
   running = false
   const stoppedAt = Date.now()
   clearInterval(ticker)
+  stopProbe()
   console.log(interrupted ? '' : '\nTime is up.', 'Waiting for the last requests to finish…')
   // Simulated people stop at their next step; only requests already sent are waited for.
   for (let waited = 0; inFlight > 0 && waited < 35000; waited += 250) await sleep(250)
@@ -551,8 +636,16 @@ function report(planned, actualMinutes, who) {
   p(`Ran ${actualMinutes.toFixed(1)} of ${planned} minutes · ${who.nStudents} students, ${who.nInstructors} instructors, ${who.nAdmins} admins`)
   p(`Page views: ${pageViews.student} student, ${pageViews.instructor} instructor, ${pageViews.admin} admin`)
   p(`Requests: ${n} (${(n / (actualMinutes * 60)).toFixed(1)} per second) · errors: ${errors} (${n ? ((100 * errors) / n).toFixed(2) : 0}%)`)
-  p(`Response time: median ${(pct(all, 50) / 1000).toFixed(2)} s · 95% under ${(pct(all, 95) / 1000).toFixed(2)} s · slowest ${(pct(all, 100) / 1000).toFixed(2)} s`)
-  p(`Data downloaded (before compression): ${(totalBytes / 1048576).toFixed(1)} MB`)
+  const sec = (ms) => (ms / 1000).toFixed(2) + ' s'
+  p(`Response time: median ${sec(pct(all, 50))} · 95% under ${sec(pct(all, 95))} · slowest ${sec(pct(all, 100))}`)
+  p(`  of which waiting on THIS computer for a free connection (${CONNECTIONS} allowed): median ${sec(pct(queuedMs, 50))} · 95% under ${sec(pct(queuedMs, 95))}`)
+  p(`  of which the SERVER (once connected): median ${sec(pct(serverMs, 50))} · 95% under ${sec(pct(serverMs, 95))} · slowest ${sec(pct(serverMs, 100))}`)
+  p(`Probe (one tiny request every 5 s, never queued): ${probeMs.length} ok, ${probeErrors} failed · median ${sec(pct(probeMs, 50))} · 95% under ${sec(pct(probeMs, 95))} · slowest ${sec(pct(probeMs, 100))}`)
+  p(`Data downloaded: ${(wireBytes / 1048576).toFixed(1)} MB over the network (${(totalBytes / 1048576).toFixed(1)} MB uncompressed)`)
+  if (errorKinds.size) {
+    p('Errors by kind:')
+    for (const [k, n] of [...errorKinds].sort((a, b) => b[1] - a[1])) p(`  ${String(n).padStart(6)}  ${k}`)
+  }
   p('')
   p('Request                                        count  errors  median   95%    slowest')
   for (const [label, s] of rows)
