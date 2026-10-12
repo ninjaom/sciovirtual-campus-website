@@ -45,27 +45,9 @@ export function FeedbackImports() {
     }
   }, [eventId])
 
-  // Total Bonus points per course: the tiebreaker for Class Ranking
-  async function bonusTotals(): Promise<Map<string, number> | null> {
-    if (!eventId) return null
-    const items = must(await supabase.from('grade_items').select('id').eq('event_id', eventId).ilike('name', 'bonus')) as { id: string }[]
-    const totals = new Map<string, number>()
-    if (!items.length) return totals
-    const rows = must(await supabase.from('grades').select('course_id, points').in('grade_item_id', items.map((i) => i.id))) as { course_id: string; points: number }[]
-    for (const r of rows) totals.set(r.course_id, (totals.get(r.course_id) ?? 0) + Number(r.points))
-    return totals
-  }
-
   async function start(kind: Kind, text: string) {
     if (!data) return
-    let bonus: Map<string, number> | null
-    try {
-      bonus = await bonusTotals()
-    } catch {
-      bonus = null
-    }
-    if (!bonus) return toast('Something went wrong. Please try again.', 'error')
-    const summary = summarizeFeedback(text, data.courses, bonus)
+    const summary = summarizeFeedback(text, data.courses)
     if (!summary.courseColumn) return toast('Couldn’t find a Course column in that file', 'error')
     if (!summary.results.length) return toast('No responses matched a course', 'error')
     setReview({ kind, summary })

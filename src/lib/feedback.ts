@@ -25,15 +25,10 @@ const COURSE = /course|class/i
  * Reads a Google Form responses export: finds the course column, treats
  * columns of 1-10 numbers as rating questions and text columns as comment
  * questions, and works out each course's averages, comments and rank (by
- * its average across all rating questions; a tie goes to the course whose
- * students earned more Bonus points, and courses still level share a rank).
+ * its average across all rating questions; tied courses share a rank).
  * Student IDs and names are read past and never kept.
  */
-export function summarizeFeedback(
-  csvText: string,
-  courses: { id: string; short_code: string; name: string }[],
-  bonusByCourse: Map<string, number> = new Map(),
-): FeedbackSummary {
+export function summarizeFeedback(csvText: string, courses: { id: string; short_code: string; name: string }[]): FeedbackSummary {
   const table = parseCsv(csvText).filter((r) => r.some((c) => c.trim() !== ''))
   const empty: FeedbackSummary = { results: [], responses: 0, unmatched: 0, ratingQuestions: [], commentQuestions: [], courseColumn: null }
   if (table.length < 2) return empty
@@ -92,17 +87,15 @@ export function summarizeFeedback(
     comments: commentCols.map((i) => ({ question: headers[i], answers: list.map((r) => (r[i] ?? '').trim()).filter(Boolean) })),
     class_rank: null,
   }))
-  // Rank: average of the course's rating-question averages; ties go to the
-  // course with more total Bonus points, and are shared if those match too
+  // Rank: average of the course's rating-question averages (ties share a rank)
   const score = (r: CourseResult) => {
     const xs = r.questions.map((q) => q.average).filter((x): x is number => x != null)
     return xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 1e6) / 1e6 : -1
   }
-  const bonus = (r: CourseResult) => bonusByCourse.get(r.course_id) ?? 0
-  const sorted = [...results].sort((a, b) => score(b) - score(a) || bonus(b) - bonus(a))
+  const sorted = [...results].sort((a, b) => score(b) - score(a))
   sorted.forEach((r, i) => {
     const prev = sorted[i - 1]
-    r.class_rank = prev && score(r) === score(prev) && bonus(r) === bonus(prev) ? prev.class_rank : i + 1
+    r.class_rank = prev && score(r) === score(prev) ? prev.class_rank : i + 1
   })
   return {
     results,
